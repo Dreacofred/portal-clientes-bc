@@ -9,14 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        // 2. Capturamos los datos del formulario (agregamos el efectivo)
+        // 2. Capturamos los datos del formulario
+        const sucursal = document.getElementById("sucursal").value; // ¡ESTA LÍNEA HABÍA DESAPARECIDO!
         const patente = document.getElementById("patente").value;
         const chofer = document.getElementById("chofer").value;
         const litros = document.getElementById("litros").value;
-        const efectivo = document.getElementById("efectivo").value || 0; // Si lo deja vacío, manda 0
+        const efectivo = document.getElementById("efectivo").value || 0; 
 
-        if (!patente || !chofer || !litros) {
-            alert("Por favor, completá patente, chofer y litros antes de emitir la orden.");
+        if (!sucursal || !patente || !chofer || !litros) {
+            alert("Por favor, completá sucursal, patente, chofer y litros antes de emitir la orden.");
             return;
         }
 
@@ -25,8 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
             .from('ordenes_carga')
             .insert([
                 {
-                    cliente_id: 2, // Este lo dejamos fijo por hoy, después lo acomodamos
-                    sucursal_carga_id: parseInt(sucursal), // ¡Acá está la magia! Toma el número real
+                    cliente_id: 2, // Fijo por ahora para Francovig
+                    sucursal_carga_id: parseInt(sucursal), // Ahora sí recibe el número real
                     patente: patente, 
                     chofer: chofer,
                     litros_pedidos: parseInt(litros),
