@@ -45,8 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 2. Capturamos los datos del formulario
         const sucursal = document.getElementById("sucursal").value; 
-        const patente = document.getElementById("patente").value.toUpperCase(); // Fuerza a mayúsculas
-        const chofer = document.getElementById("chofer").value.toUpperCase();   // Fuerza a mayúsculas
+        
+        // Lo pasa a mayúsculas y borra CUALQUIER espacio en blanco que haya metido el chofer
+        const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
+        
+        const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
         const efectivo = document.getElementById("efectivo").value || 0;
 
