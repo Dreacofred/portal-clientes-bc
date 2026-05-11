@@ -32,29 +32,36 @@
         document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Tomamos los datos y limpiamos los espacios en blanco por las dudas
-            const legajo = document.getElementById('legajo').value.trim();
-            const pin = document.getElementById('pin').value.trim();
+            // 1. Limpiamos espacios y convertimos a los tipos de datos de tu tabla
+            const legajoInput = document.getElementById('legajo').value.trim();
+            const pinInput = document.getElementById('pin').value.trim();
 
-            // Usamos maybeSingle() para que no tire error 406 si no lo encuentra
+            const legajoNumerico = parseInt(legajoInput); // Porque en Supabase es int8
+            const pinTexto = String(pinInput);          // Porque en Supabase es text
+
+            // 2. Consultamos usando maybeSingle para evitar el error 406
             const { data, error } = await supabaseCliente
                 .from('empleados')
                 .select('*')
-                .eq('legajo', legajo)
-                .eq('pin', pin)
+                .eq('legajo', legajoNumerico)
+                .eq('pin', pinTexto)
                 .maybeSingle(); 
 
             if (error) {
-                console.error("Error en la base:", error);
-                alert("Hubo un problema al conectar con el servidor.");
-            } else if (!data) {
-                // Si la data viene vacía, es porque no existe esa combinación
-                alert("Legajo o PIN incorrecto. Verificá los datos.");
-            } else {
-                // Si lo encontró, lo dejamos pasar!
+                console.error("Error de conexión:", error);
+                alert("Error al conectar con la base de datos.");
+                return;
+            }
+
+            if (data) {
+                // ¡ÉXITO! Guardamos y entramos
+                console.log("Login exitoso para:", data.nombre);
                 localStorage.setItem('empleado_nombre', data.nombre);
                 localStorage.setItem('empleado_sucursal', data.sucursal_id);
                 window.location.href = "playa.html";
+            } else {
+                // No hubo coincidencia
+                alert("Legajo o PIN incorrecto. Reintentá.");
             }
         });
     </script>
