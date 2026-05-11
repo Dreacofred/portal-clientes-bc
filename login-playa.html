@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Personal - BC</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background-color: #121212; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-box { background: #1E1E1E; padding: 40px; border-radius: 15px; border: 2px solid #C8102E; width: 100%; max-width: 350px; text-align: center; }
+        input { width: 100%; padding: 15px; margin: 10px 0; background: #252525; border: 1px solid #444; color: white; border-radius: 8px; font-size: 18px; text-align: center; }
+        .btn-playa { background: #C8102E; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1 style="color:white; margin-bottom: 5px;">BC</h1>
+        <p style="color: #888; margin-bottom: 30px;">ACCESO PERSONAL</p>
+        <form id="form-login-empleado">
+            <input type="number" id="legajo" placeholder="Nº DE LEGAJO" required>
+            <input type="password" id="pin" placeholder="PIN" required>
+            <button type="submit" class="btn-playa">ENTRAR A PLAYA</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
+        const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
+        const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const legajo = document.getElementById('legajo').value;
+            const pin = document.getElementById('pin').value;
+
+            const { data, error } = await supabaseCliente
+                .from('empleados')
+                .select('*')
+                .eq('legajo', legajo)
+                .eq('pin', pin)
+                .single();
+
+            if (error || !data) {
+                alert("Legajo o PIN incorrecto. Verificá los datos.");
+            } else {
+                // Guardamos los datos en la memoria de la tablet para que playa.html los use
+                localStorage.setItem('empleado_nombre', data.nombre);
+                localStorage.setItem('empleado_sucursal', data.sucursal_id);
+                window.location.href = "playa.html";
+            }
+        });
+    </script>
+</body>
+</html>
