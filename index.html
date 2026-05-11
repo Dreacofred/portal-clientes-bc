@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal de Clientes Pro - BC Combustibles</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Fuente Montserrat para darle el toque profesional -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- CABECERA ROJA -->
     <header class="header-rojo">
         <div class="header-izq">
             <h1><i>BC</i> Combustibles</h1>
@@ -27,10 +25,8 @@
         </div>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL -->
     <main class="contenedor">
         
-        <!-- FORMULARIO DE NUEVA ORDEN -->
         <section class="tarjeta form-section">
             <h3>Emitir Nueva Orden de Carga</h3>
             
@@ -68,8 +64,7 @@
                             <option value="LEZCANO OSVALDO">LEZCANO OSVALDO</option>
                         </select>
                     </div>
-
-                <div class="fila-form">
+                </div> <div class="fila-form">
                     <div class="grupo-input">
                         <label>Litros</label>
                         <input type="number" id="litros" placeholder="Ej: 500">
@@ -85,7 +80,6 @@
             </form>
         </section>
 
-        <!-- TABLA DE ÓRDENES -->
         <section class="tarjeta tabla-section">
             <h3>mis ordenes</h3>
             <table class="tabla-ordenes">
@@ -97,7 +91,6 @@
                     </tr>
                 </thead>
                 <tbody id="cuerpo-tabla">
-                    <!-- Fila de ejemplo estática por ahora -->
                     <tr>
                         <td>1024</td>
                         <td>AB 456 ZW</td>
@@ -108,7 +101,7 @@
         </section>
 
     </main>
-	
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>
