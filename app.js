@@ -38,11 +38,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // --- C. EL RESTO DEL CÓDIGO (Usando el ID dinámico) ---
     const formulario = document.getElementById("formulario-orden");
 
-    async function cargarOrdenes() {
+  async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*')
-            .eq('cliente_id', idClienteActual) // <--- MAGIA: Solo ve sus cosas
+            .eq('cliente_id', idClienteActual) 
             .order('id', { ascending: false });
 
         if (error) return;
@@ -50,11 +50,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         const cuerpoTabla = document.getElementById("cuerpo-tabla");
         cuerpoTabla.innerHTML = ""; 
 
+        // Diccionario para traducir el número de Supabase al nombre de la sucursal
+        const mapaSucursales = {
+            1: 'Reconquista',
+            2: 'Avellaneda',
+            3: 'Florencia',
+            4: 'Recreo'
+        };
+
         data.forEach(orden => {
             const fila = document.createElement("tr");
+
+            // Transformamos la fecha que manda Supabase a formato Argentino (DD/MM/AAAA HH:MM)
+            const fechaObj = new Date(orden.created_at);
+            const fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+
+            // Traducimos el ID de la sucursal buscando en el diccionario
+            const nombreSucursal = mapaSucursales[orden.sucursal_carga_id] || 'Sin asignar';
+
             fila.innerHTML = `
-                <td>${orden.id}</td>
+                <td>#${orden.id}</td>
+                <td>${fechaFormateada}</td>
+                <td><strong>${nombreSucursal}</strong></td>
                 <td>${orden.patente}</td>
+                <td>${orden.litros_pedidos} L</td>
                 <td><span class="estado pendiente">${orden.estado}</span></td>
             `;
             cuerpoTabla.appendChild(fila);
