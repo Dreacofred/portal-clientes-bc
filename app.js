@@ -43,11 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const sucursal = document.getElementById("sucursal").value;
-        const patente = document.getElementById("patente").value;
-        const chofer = document.getElementById("chofer").value;
+        // 2. Capturamos los datos del formulario
+        const sucursal = document.getElementById("sucursal").value; 
+        const patente = document.getElementById("patente").value.toUpperCase(); // Fuerza a mayúsculas
+        const chofer = document.getElementById("chofer").value.toUpperCase();   // Fuerza a mayúsculas
         const litros = document.getElementById("litros").value;
-        const efectivo = document.getElementById("efectivo").value || 0; 
+        const efectivo = document.getElementById("efectivo").value || 0;
 
         if (!sucursal || !patente || !chofer || !litros) {
             alert("Por favor, completá sucursal, patente, chofer y litros antes de emitir la orden.");
