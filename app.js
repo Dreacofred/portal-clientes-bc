@@ -6,24 +6,19 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 document.addEventListener("DOMContentLoaded", () => {
     const formulario = document.getElementById("formulario-orden");
 
-    // --- NUEVA FUNCIÓN: Buscar y mostrar las órdenes en la tabla ---
+    // --- FUNCIÓN: Buscar y mostrar las órdenes en la tabla ---
     async function cargarOrdenes() {
-        // Le pedimos a Supabase las órdenes del cliente 2, ordenadas por las más nuevas primero
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*')
             .eq('cliente_id', 2)
             .order('id', { ascending: false });
 
-        if (error) {
-            console.error("Error al traer las órdenes:", error);
-            return;
-        }
+        if (error) return;
 
         const cuerpoTabla = document.getElementById("cuerpo-tabla");
-        cuerpoTabla.innerHTML = ""; // Limpiamos la fila de mentira
+        cuerpoTabla.innerHTML = ""; 
 
-        // Por cada orden real que trae, armamos una fila nueva
         data.forEach(orden => {
             const fila = document.createElement("tr");
             fila.innerHTML = `
@@ -35,52 +30,72 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Apenas carga la página, llamamos a la función para que llene la tabla
-    cargarOrdenes();
+    // --- NUEVA FUNCIÓN: Llenar las listas de sugerencias (Datalists) ---
+    async function cargarSugerencias() {
+        // Buscamos todas las órdenes para extraer choferes y patentes únicos
+        const { data, error } = await supabaseCliente
+            .from('ordenes_carga')
+            .select('patente, chofer')
+            .eq('cliente_id', 2);
 
-    // --- FIN NUEVA FUNCIÓN ---
+        if (error) return;
+
+        // Usamos Set para que no haya nombres repetidos
+        const patentesUnicas = [...new Set(data.map(item => item.patente))];
+        const choferesUnicos = [...new Set(data.map(item => item.chofer))];
+
+        const listadoPatentes = document.getElementById("lista-patentes");
+        const listadoChoferes = document.getElementById("lista-choferes");
+
+        listadoPatentes.innerHTML = "";
+        listadoChoferes.innerHTML = "";
+
+        patentesUnicas.forEach(p => {
+            if(p) listadoPatentes.innerHTML += `<option value="${p}">`;
+        });
+
+        choferesUnicos.forEach(c => {
+            if(c) listadoChoferes.innerHTML += `<option value="${c}">`;
+        });
+    }
+
+    // Cargamos todo al iniciar
+    cargarOrdenes();
+    cargarSugerencias();
 
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        // 2. Capturamos los datos del formulario
-        const sucursal = document.getElementById("sucursal").value; 
-        
-        // Lo pasa a mayúsculas y borra CUALQUIER espacio en blanco que haya metido el chofer
+        const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
-        
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
-        const efectivo = document.getElementById("efectivo").value || 0;
+        const efectivo = document.getElementById("efectivo").value || 0; 
 
         if (!sucursal || !patente || !chofer || !litros) {
-            alert("Por favor, completá sucursal, patente, chofer y litros antes de emitir la orden.");
+            alert("Por favor, completá todos los campos.");
             return;
         }
 
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
-            .insert([
-                {
-                    cliente_id: 2, 
-                    sucursal_carga_id: parseInt(sucursal), 
-                    patente: patente, 
-                    chofer: chofer,
-                    litros_pedidos: parseInt(litros),
-                    efectivo_pedido: parseInt(efectivo),
-                    estado: 'PENDIENTE'
-                }
-            ]);
+            .insert([{
+                cliente_id: 2, 
+                sucursal_carga_id: parseInt(sucursal), 
+                patente: patente, 
+                chofer: chofer,
+                litros_pedidos: parseInt(litros),
+                efectivo_pedido: parseInt(efectivo),
+                estado: 'PENDIENTE'
+            }]);
 
         if (error) {
-            console.error("Error de Supabase:", error);
-            alert("Sigue habiendo un error. Mirá la consola.");
+            alert("Error al guardar.");
         } else {
-            alert(`¡GOLAZO! La orden de ${litros} litros para la patente ${patente} entró perfecto a Supabase.`);
+            alert("¡GOLAZO! Orden cargada.");
             formulario.reset(); 
-            
-            // ¡Magia! Apenas se guarda la orden, actualizamos la tabla de abajo
-            cargarOrdenes(); 
+            cargarOrdenes();
+            cargarSugerencias(); // Actualiza la lista por si escribiste uno nuevo
         }
     });
 });
