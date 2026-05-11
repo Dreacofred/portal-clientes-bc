@@ -8,7 +8,6 @@ const ID_SUCURSAL_ACTUAL = 4;
 
 document.addEventListener("DOMContentLoaded", () => {
     const contenedorOrdenes = document.getElementById("lista-ordenes");
-    
     const modal = document.getElementById("modal-detalle");
     const btnCerrarModal = document.getElementById("btn-cerrar-modal");
     let ordenActualizadaID = null;
@@ -18,10 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function cargarOrdenesPendientes() {
-        // CORRECCIÓN: Usamos 'estado' en minúscula y quitamos el cruce de tablas temporalmente
+        // AHORA SÍ: minúscula en 'estado' y cruzamos con la tabla clientes
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
-            .select('*') 
+            .select('*, clientes(nombre)') 
             .eq('estado', 'PENDIENTE')
             .eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL)
             .order('fecha_creacion', { ascending: true });
@@ -43,8 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const patenteFormateada = orden.patente.length === 7 ? `${orden.patente.slice(0,2)} ${orden.patente.slice(2,5)} ${orden.patente.slice(5,7)}` : orden.patente;
             const iconoEfectivo = orden.efectivo_pedido > 0 ? `<div class="dinero-icon">💵</div>` : '';
 
-            // Por ahora, como no cruzamos tablas, mostramos un texto genérico o el ID
-            const nombreEmpresa = "CLIENTE ID: " + orden.cliente_id;
+            // Extraemos el nombre real que viene de la tabla clientes
+            const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
 
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
@@ -96,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.getElementById("btn-iniciar-carga").addEventListener("click", () => {
-        alert("¡Carga iniciada!");
+        alert("¡Carga iniciada! (Próximamente cambiaremos el estado a DESPACHADO)");
         modal.style.display = "none";
     });
 
