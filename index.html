@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Clientes Pro - BC Combustibles</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Fuente Montserrat para darle el toque profesional -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- CABECERA ROJA -->
+    <header class="header-rojo">
+        <div class="header-izq">
+            <h1><i>BC</i> Combustibles</h1>
+            <span class="separador">|</span>
+            <h2>Portal de Clientes Pro</h2>
+        </div>
+        <div class="header-der">
+            <div class="info-usuario">
+                <span class="bienvenido">Bienvenido,</span>
+                <span class="nombre-empresa">TRANSPORTE FRANCOVIG SH</span>
+            </div>
+            <div class="icono-perfil">👤</div>
+            <div class="icono-salir">🚪</div>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main class="contenedor">
+        
+        <!-- FORMULARIO DE NUEVA ORDEN -->
+        <section class="tarjeta form-section">
+            <h3>Emitir Nueva Orden de Carga</h3>
+            
+            <form id="formulario-orden">
+                <div class="fila-form">
+                    <div class="grupo-input ancho-doble">
+                        <label>Entidad Pagadora (AUTOMÁTICO)</label>
+                        <input type="text" value="TRANSPORTE FRANCOVIG SH" readonly class="input-bloqueado">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Sucursal de Carga</label>
+                        <select id="sucursal">
+                            <option value="">Seleccionar sucursal...</option>
+                            <option value="avellaneda">Avellaneda</option>
+                            <option value="recreo">Recreo</option>
+                            <option value="reconquista">Reconquista</option>
+                            <option value="florencia">Florencia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Patente/Dominio del Camión</label>
+                        <select id="patente">
+                            <option value="">Seleccionar patente...</option>
+                            <option value="AF123XY">AF 123 XY</option>
+                            <option value="AB456ZW">AB 456 ZW</option>
+                        </select>
+                    </div>
+                    <div class="grupo-input">
+                        <label>Chofer Autorizado</label>
+                        <select id="chofer">
+                            <option value="">Seleccionar chofer...</option>
+                            <option value="lezcano">LEZCANO OSVALDO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Litros</label>
+                        <input type="number" id="litros" placeholder="Ej: 500">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Monto de Entrega en Efectivo ($)</label>
+                        <input type="number" id="efectivo" placeholder="Ej: 22000">
+                        <small class="nota">ℹ️ Límite de adelanto específico a un cliente en sucursal de carga.</small>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-rojo">Emitir Orden de Carga</button>
+            </form>
+        </section>
+
+        <!-- TABLA DE ÓRDENES -->
+        <section class="tarjeta tabla-section">
+            <h3>mis ordenes</h3>
+            <table class="tabla-ordenes">
+                <thead>
+                    <tr>
+                        <th>id</th>
+                        <th>Tabla patente</th>
+                        <th>Estado patente</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-tabla">
+                    <!-- Fila de ejemplo estática por ahora -->
+                    <tr>
+                        <td>1024</td>
+                        <td>AB 456 ZW</td>
+                        <td><span class="estado pendiente">PENDIENTE</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+	
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
