@@ -20,14 +20,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 3. Mandamos los datos con los NOMBRES EXACTOS de tu tabla
+        // 3. Mandamos los datos con los NOMBRES EXACTOS
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .insert([
                 {
-                    cliente_id: 1, // Temporalmente mandamos el ID 1 para que pase
-                    sucursal_carga_id: 1, // Temporalmente mandamos el ID 1
-                    patente: patente, // Con P mayúscula, tal cual tu tabla
+                    cliente_id: 1, // Este lo dejamos fijo por hoy, después lo acomodamos
+                    sucursal_carga_id: parseInt(sucursal), // ¡Acá está la magia! Toma el número real
+                    patente: patente, 
                     chofer: chofer,
                     litros_pedidos: parseInt(litros),
                     efectivo_pedido: parseInt(efectivo),
