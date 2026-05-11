@@ -29,10 +29,12 @@
         const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
         const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
+       document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const legajo = document.getElementById('legajo').value;
-            const pin = document.getElementById('pin').value;
+            
+            // ACA ESTÁ EL CAMBIO: Forzamos a que el legajo sea un número matemático
+            const legajo = parseInt(document.getElementById('legajo').value);
+            const pin = document.getElementById('pin').value; // El PIN lo dejamos como texto
 
             const { data, error } = await supabaseCliente
                 .from('empleados')
@@ -42,9 +44,9 @@
                 .single();
 
             if (error || !data) {
+                console.error("Error completo:", error); // Para ver el error en la consola
                 alert("Legajo o PIN incorrecto. Verificá los datos.");
             } else {
-                // Guardamos los datos en la memoria de la tablet para que playa.html los use
                 localStorage.setItem('empleado_nombre', data.nombre);
                 localStorage.setItem('empleado_sucursal', data.sucursal_id);
                 window.location.href = "playa.html";
