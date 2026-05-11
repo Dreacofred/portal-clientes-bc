@@ -30,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function cargarOrdenesPendientes() {
-        // Usamos ID_SUCURSAL_ACTUAL (el que viene del legajo del empleado)
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*, clientes(nombre)') 
@@ -109,6 +108,18 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("¡Carga iniciada! (Próximamente cambiaremos el estado a DESPACHADO)");
         modal.style.display = "none";
     });
+
+    // --- LÓGICA DEL BOTÓN SALIR ---
+    const btnSalir = document.getElementById("btn-cerrar-sesion");
+    if (btnSalir) {
+        btnSalir.addEventListener("click", () => {
+            if (confirm("¿Cerrar sesión de " + NOMBRE_OPERADOR + "?")) {
+                localStorage.removeItem('empleado_nombre');
+                localStorage.removeItem('empleado_sucursal');
+                window.location.href = "login-playa.html";
+            }
+        });
+    }
 
     cargarOrdenesPendientes();
     setInterval(cargarOrdenesPendientes, 30000); 
