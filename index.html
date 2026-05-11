@@ -48,22 +48,23 @@
                     </div>
                 </div>
 
-                <div class="fila-form">
+               <div class="fila-form">
                     <div class="grupo-input">
                         <label>Patente/Dominio del Camión</label>
-                        <select id="patente">
-                            <option value="">Seleccionar patente...</option>
-                            <option value="AF 123 XY">AF 123 XY</option>
-                            <option value="AB 456 ZW">AB 456 ZW</option>
-                        </select>
+                        <input list="lista-patentes" id="patente" placeholder="Elegir o escribir patente..." autocomplete="off">
+                        <datalist id="lista-patentes">
+                            <option value="AF 123 XY">
+                            <option value="AB 456 ZW">
+                        </datalist>
                     </div>
                     <div class="grupo-input">
                         <label>Chofer Autorizado</label>
-                        <select id="chofer">
-                            <option value="">Seleccionar chofer...</option>
-                            <option value="LEZCANO OSVALDO">LEZCANO OSVALDO</option>
-                        </select>
+                        <input list="lista-choferes" id="chofer" placeholder="Elegir o escribir chofer..." autocomplete="off">
+                        <datalist id="lista-choferes">
+                            <option value="LEZCANO OSVALDO">
+                        </datalist>
                     </div>
+                </div>
                 </div> <div class="fila-form">
                     <div class="grupo-input">
                         <label>Litros</label>
