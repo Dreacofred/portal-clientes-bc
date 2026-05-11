@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .from('ordenes_carga')
             .insert([
                 {
-                    cliente_id: 1, // Este lo dejamos fijo por hoy, después lo acomodamos
+                    cliente_id: 2, // Este lo dejamos fijo por hoy, después lo acomodamos
                     sucursal_carga_id: parseInt(sucursal), // ¡Acá está la magia! Toma el número real
                     patente: patente, 
                     chofer: chofer,
