@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const formulario = document.getElementById("formulario-orden");
 
-    // --- C. TABLA DE ÓRDENES ---
+// --- C. TABLA DE ÓRDENES (ACTUALIZADA) ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
@@ -46,25 +46,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         const cuerpoTabla = document.getElementById("cuerpo-tabla");
         cuerpoTabla.innerHTML = ""; 
 
-        const mapaSucursales = {
-            1: 'Reconquista',
-            2: 'Avellaneda',
-            3: 'Florencia',
-            4: 'Recreo'
-        };
+        const mapaSucursales = { 1: 'Reconquista', 2: 'Avellaneda', 3: 'Florencia', 4: 'Recreo' };
 
         data.forEach(orden => {
             const fila = document.createElement("tr");
 
-            // PROCESAMIENTO DE FECHA (Usando tu columna fecha_creacion)
+            // Lógica: Si está despachado, usamos fecha_despacho y pintamos la fila
             let fechaRaw = orden.fecha_creacion;
-            let fechaFormateada = "Sin fecha";
+            let claseEstado = "pendiente";
+            
+            if (orden.estado === 'DESPACHADO') {
+                fila.classList.add("fila-despachada");
+                claseEstado = "despachado";
+                // Mostramos la hora en que se cargó realmente el camión
+                if (orden.fecha_despacho) {
+                    fechaRaw = orden.fecha_despacho;
+                }
+            }
 
+            // PROCESAMIENTO DE FECHA
+            let fechaFormateada = "Sin fecha";
             if (fechaRaw) {
-                // Limpiamos el formato para que sea compatible con todos los navegadores
                 const fechaLimpia = fechaRaw.replace(" ", "T");
                 const fechaObj = new Date(fechaLimpia);
-                
                 if (!isNaN(fechaObj)) {
                     fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
                                      fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
@@ -79,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td><strong>${nombreSucursal}</strong></td>
                 <td>${orden.patente}</td>
                 <td>${orden.litros_pedidos} L</td>
-                <td><span class="estado pendiente">${orden.estado}</span></td>
+                <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
             `;
             cuerpoTabla.appendChild(fila);
         });
