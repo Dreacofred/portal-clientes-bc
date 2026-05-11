@@ -1,1 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BC Combustibles</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; height: 100vh;">
+    <div class="tarjeta" style="width: 100%; max-width: 400px;">
+        <h1 style="color: #C8102E; text-align: center; margin-bottom: 20px;"><i>BC</i> Combustibles</h1>
+        <h3 style="text-align: center;">Portal Clientes</h3>
+        <form id="form-login">
+            <div class="grupo-input" style="margin-bottom: 15px;">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="tu@email.com" required>
+            </div>
+            <div class="grupo-input" style="margin-bottom: 20px;">
+                <label>Contraseña</label>
+                <input type="password" id="password" placeholder="******" required>
+            </div>
+            <button type="submit" class="btn-rojo">Entrar al Portal</button>
+        </form>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Acá irá la lógica de conexión que armaremos en el siguiente paso
+    </script>
+</body>
+</html>
