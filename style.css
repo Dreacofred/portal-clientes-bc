@@ -175,3 +175,15 @@ input:focus, select:focus {
     color: #856404;
     border: 1px solid #ffeeba;
 }
+
+/* Estado Despachado (Verde) */
+.despachado {
+    background-color: #2ecc71;
+    color: white;
+    border: 1px solid #27ae60;
+}
+
+/* Fila entera verde para despachados */
+.fila-despachada {
+    background-color: rgba(46, 204, 113, 0.15) !important; 
+}
