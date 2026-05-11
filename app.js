@@ -3,42 +3,38 @@ const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
 const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// Variable para guardar el ID de la empresa que acaba de entrar
 let idClienteActual = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // --- A. SEGURIDAD: Verificar quién entró ---
+    // --- A. SEGURIDAD: Verificar sesión activa ---
     const { data: { user } } = await supabaseCliente.auth.getUser();
 
     if (!user) {
-        // Si no hay nadie logueado, lo pateamos a la página de login
         window.location.href = "login.html";
         return;
     }
 
-    // --- B. BUSCAR SUS DATOS: ¿Qué empresa es? ---
+    // --- B. DATOS DEL CLIENTE ---
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
         .from('clientes')
         .select('id, nombre')
         .eq('auth_user_id', user.id)
-        .single(); // Buscamos a qué empresa pertenece este mail
+        .single();
 
     if (errorCliente || !clienteDatos) {
-        alert("Tu usuario no está vinculado a BC Combustibles. Contactá a administración.");
+        alert("Tu usuario no está vinculado a BC Combustibles.");
         return;
     }
 
-    idClienteActual = clienteDatos.id; // ¡Acá capturamos su ID dinámico! (ej: 2)
-
-    // Actualizamos la pantalla con su nombre real sacado de la base de datos
+    idClienteActual = clienteDatos.id;
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
 
-    // --- C. EL RESTO DEL CÓDIGO (Usando el ID dinámico) ---
     const formulario = document.getElementById("formulario-orden");
 
-  async function cargarOrdenes() {
+    // --- C. TABLA DE ÓRDENES ---
+    async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*')
@@ -50,7 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const cuerpoTabla = document.getElementById("cuerpo-tabla");
         cuerpoTabla.innerHTML = ""; 
 
-        // Diccionario para traducir el número de Supabase al nombre de la sucursal
         const mapaSucursales = {
             1: 'Reconquista',
             2: 'Avellaneda',
@@ -61,11 +56,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.forEach(orden => {
             const fila = document.createElement("tr");
 
-            // Transformamos la fecha que manda Supabase a formato Argentino (DD/MM/AAAA HH:MM)
-            const fechaObj = new Date(orden.created_at);
-            const fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+            // PROCESAMIENTO DE FECHA (Usando tu columna fecha_creacion)
+            let fechaRaw = orden.fecha_creacion;
+            let fechaFormateada = "Sin fecha";
 
-            // Traducimos el ID de la sucursal buscando en el diccionario
+            if (fechaRaw) {
+                // Limpiamos el formato para que sea compatible con todos los navegadores
+                const fechaLimpia = fechaRaw.replace(" ", "T");
+                const fechaObj = new Date(fechaLimpia);
+                
+                if (!isNaN(fechaObj)) {
+                    fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
+                                     fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+                }
+            }
+
             const nombreSucursal = mapaSucursales[orden.sucursal_carga_id] || 'Sin asignar';
 
             fila.innerHTML = `
@@ -80,11 +85,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    // --- D. SUGERENCIAS (Datalists) ---
     async function cargarSugerencias() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('patente, chofer')
-            .eq('cliente_id', idClienteActual); // <--- MAGIA: Solo ve sus cosas
+            .eq('cliente_id', idClienteActual);
 
         if (error) return;
 
@@ -104,9 +110,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     cargarOrdenes();
     cargarSugerencias();
 
+    // --- E. ENVÍO DEL FORMULARIO ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
-
         const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
         const chofer = document.getElementById("chofer").value.toUpperCase();
@@ -114,14 +120,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const efectivo = document.getElementById("efectivo").value || 0; 
 
         if (!sucursal || !patente || !chofer || !litros) {
-            alert("Por favor, completá todos los campos.");
+            alert("Por favor, completá todos los campos obligatorios.");
             return;
         }
 
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .insert([{
-                cliente_id: idClienteActual, // <--- MAGIA: Carga a su nombre
+                cliente_id: idClienteActual, 
                 sucursal_carga_id: parseInt(sucursal), 
                 patente: patente, 
                 chofer: chofer,
@@ -131,23 +137,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             }]);
 
         if (error) {
-            alert("Error al guardar.");
+            console.error("Error al guardar:", error);
+            alert("Error al guardar la orden.");
         } else {
-            alert("¡GOLAZO! Orden cargada.");
+            alert("¡GOLAZO! Orden cargada correctamente.");
             formulario.reset(); 
-            // Para que no le borre el nombre bloqueado al reiniciar el formulario:
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             cargarOrdenes();
             cargarSugerencias();
         }
     });
 
-    // --- D. BOTÓN DE SALIR (Cerrar sesión) ---
+    // --- F. LOGOUT ---
     const btnSalir = document.querySelector('.icono-salir');
     if (btnSalir) {
         btnSalir.addEventListener('click', async () => {
-            await supabaseCliente.auth.signOut(); // Le avisa a Supabase que corte la sesión
-            window.location.href = "login.html";  // Lo manda a la puerta
+            await supabaseCliente.auth.signOut();
+            window.location.href = "login.html";
         });
     }
 });
