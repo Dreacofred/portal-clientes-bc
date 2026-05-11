@@ -106,9 +106,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnIniciar = document.getElementById("btn-iniciar-carga");
     if(btnIniciar) {
-        btnIniciar.addEventListener("click", () => {
-            alert("¡Carga iniciada!");
-            modal.style.display = "none";
+        btnIniciar.addEventListener("click", async () => {
+            
+            // 1. Cambiamos visualmente el botón para evitar doble clic
+            btnIniciar.disabled = true;
+            btnIniciar.textContent = "PROCESANDO...";
+
+            // 2. Actualizamos la base de datos
+            const { error } = await supabaseCliente
+                .from('ordenes_carga')
+                .update({ 
+                    estado: 'DESPACHADO',
+                    fecha_despacho: new Date().toISOString() // Guarda fecha y hora exacta
+                })
+                .eq('id', ordenActualizadaID);
+
+            if (error) {
+                console.error("Error al despachar:", error);
+                alert("No se pudo registrar. Revisá la conexión.");
+                btnIniciar.disabled = false;
+                btnIniciar.textContent = "INICIAR CARGA";
+            } else {
+                // 3. Éxito: Cerramos el modal y limpiamos la pantalla del playero
+                modal.style.display = "none";
+                
+                // Esta función vuelve a consultar Supabase y, como el estado ya no es 
+                // 'PENDIENTE', la tarjeta desaparece sola de la vista de Agustín.
+                cargarOrdenesPendientes();
+
+                // Reset del botón para la próxima orden
+                btnIniciar.disabled = false;
+                btnIniciar.innerHTML = '<span class="icono-check">✔</span> INICIAR CARGA';
+            }
         });
     }
 
