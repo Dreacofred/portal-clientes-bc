@@ -25,28 +25,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
+       const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
         const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
         const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-       document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
+        document.getElementById('form-login-empleado').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // ACA ESTÁ EL CAMBIO: Forzamos a que el legajo sea un número matemático
-            const legajo = parseInt(document.getElementById('legajo').value);
-            const pin = document.getElementById('pin').value; // El PIN lo dejamos como texto
+            // Tomamos los datos y limpiamos los espacios en blanco por las dudas
+            const legajo = document.getElementById('legajo').value.trim();
+            const pin = document.getElementById('pin').value.trim();
 
+            // Usamos maybeSingle() para que no tire error 406 si no lo encuentra
             const { data, error } = await supabaseCliente
                 .from('empleados')
                 .select('*')
                 .eq('legajo', legajo)
                 .eq('pin', pin)
-                .single();
+                .maybeSingle(); 
 
-            if (error || !data) {
-                console.error("Error completo:", error); // Para ver el error en la consola
+            if (error) {
+                console.error("Error en la base:", error);
+                alert("Hubo un problema al conectar con el servidor.");
+            } else if (!data) {
+                // Si la data viene vacía, es porque no existe esa combinación
                 alert("Legajo o PIN incorrecto. Verificá los datos.");
             } else {
+                // Si lo encontró, lo dejamos pasar!
                 localStorage.setItem('empleado_nombre', data.nombre);
                 localStorage.setItem('empleado_sucursal', data.sucursal_id);
                 window.location.href = "playa.html";
