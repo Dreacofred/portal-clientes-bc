@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 {
                     cliente_id: 1, // Temporalmente mandamos el ID 1 para que pase
                     sucursal_carga_id: 1, // Temporalmente mandamos el ID 1
-                    Patente: patente, // Con P mayúscula, tal cual tu tabla
+                    patente: patente, // Con P mayúscula, tal cual tu tabla
                     chofer: chofer,
                     litros_pedidos: parseInt(litros),
                     efectivo_pedido: parseInt(efectivo),
