@@ -3,15 +3,46 @@ const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
 const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-document.addEventListener("DOMContentLoaded", () => {
+// Variable para guardar el ID de la empresa que acaba de entrar
+let idClienteActual = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    // --- A. SEGURIDAD: Verificar quién entró ---
+    const { data: { user } } = await supabaseCliente.auth.getUser();
+
+    if (!user) {
+        // Si no hay nadie logueado, lo pateamos a la página de login
+        window.location.href = "login.html";
+        return;
+    }
+
+    // --- B. BUSCAR SUS DATOS: ¿Qué empresa es? ---
+    const { data: clienteDatos, error: errorCliente } = await supabaseCliente
+        .from('clientes')
+        .select('id, nombre')
+        .eq('auth_user_id', user.id)
+        .single(); // Buscamos a qué empresa pertenece este mail
+
+    if (errorCliente || !clienteDatos) {
+        alert("Tu usuario no está vinculado a BC Combustibles. Contactá a administración.");
+        return;
+    }
+
+    idClienteActual = clienteDatos.id; // ¡Acá capturamos su ID dinámico! (ej: 2)
+
+    // Actualizamos la pantalla con su nombre real sacado de la base de datos
+    document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
+    document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
+
+    // --- C. EL RESTO DEL CÓDIGO (Usando el ID dinámico) ---
     const formulario = document.getElementById("formulario-orden");
 
-    // --- FUNCIÓN: Buscar y mostrar las órdenes en la tabla ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*')
-            .eq('cliente_id', 2)
+            .eq('cliente_id', idClienteActual) // <--- MAGIA: Solo ve sus cosas
             .order('id', { ascending: false });
 
         if (error) return;
@@ -30,17 +61,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- NUEVA FUNCIÓN: Llenar las listas de sugerencias (Datalists) ---
     async function cargarSugerencias() {
-        // Buscamos todas las órdenes para extraer choferes y patentes únicos
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('patente, chofer')
-            .eq('cliente_id', 2);
+            .eq('cliente_id', idClienteActual); // <--- MAGIA: Solo ve sus cosas
 
         if (error) return;
 
-        // Usamos Set para que no haya nombres repetidos
         const patentesUnicas = [...new Set(data.map(item => item.patente))];
         const choferesUnicos = [...new Set(data.map(item => item.chofer))];
 
@@ -50,16 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
         listadoPatentes.innerHTML = "";
         listadoChoferes.innerHTML = "";
 
-        patentesUnicas.forEach(p => {
-            if(p) listadoPatentes.innerHTML += `<option value="${p}">`;
-        });
-
-        choferesUnicos.forEach(c => {
-            if(c) listadoChoferes.innerHTML += `<option value="${c}">`;
-        });
+        patentesUnicas.forEach(p => { if(p) listadoPatentes.innerHTML += `<option value="${p}">`; });
+        choferesUnicos.forEach(c => { if(c) listadoChoferes.innerHTML += `<option value="${c}">`; });
     }
 
-    // Cargamos todo al iniciar
     cargarOrdenes();
     cargarSugerencias();
 
@@ -80,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .insert([{
-                cliente_id: 2, 
+                cliente_id: idClienteActual, // <--- MAGIA: Carga a su nombre
                 sucursal_carga_id: parseInt(sucursal), 
                 patente: patente, 
                 chofer: chofer,
@@ -94,8 +116,19 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             alert("¡GOLAZO! Orden cargada.");
             formulario.reset(); 
+            // Para que no le borre el nombre bloqueado al reiniciar el formulario:
+            document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             cargarOrdenes();
-            cargarSugerencias(); // Actualiza la lista por si escribiste uno nuevo
+            cargarSugerencias();
         }
     });
+
+    // --- D. BOTÓN DE SALIR (Cerrar sesión) ---
+    const btnSalir = document.querySelector('.icono-salir');
+    if (btnSalir) {
+        btnSalir.addEventListener('click', async () => {
+            await supabaseCliente.auth.signOut(); // Le avisa a Supabase que corte la sesión
+            window.location.href = "login.html";  // Lo manda a la puerta
+        });
+    }
 });
