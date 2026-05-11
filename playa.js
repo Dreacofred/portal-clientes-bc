@@ -3,10 +3,23 @@ const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
 const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// RECREO es el ID 4 en tu tabla sucursales
-const ID_SUCURSAL_ACTUAL = 4; 
+// --- DINAMISMO: Leemos los datos del empleado que guardó el Login ---
+const NOMBRE_OPERADOR = localStorage.getItem('empleado_nombre') || "Operador";
+const ID_SUCURSAL_ACTUAL = localStorage.getItem('empleado_sucursal');
 
 document.addEventListener("DOMContentLoaded", () => {
+    
+    // SEGURIDAD: Si no hay sucursal en memoria, lo mandamos al login de playa
+    if (!ID_SUCURSAL_ACTUAL) {
+        window.location.href = "login-playa.html";
+        return;
+    }
+
+    // Actualizamos los textos de la cabecera con los datos del empleado
+    const nombresSucursales = { 1: "RECONQUISTA", 2: "AVELLANEDA", 3: "FLORENCIA", 4: "RECREO" };
+    document.querySelector('.header-der div:first-child strong').textContent = NOMBRE_OPERADOR;
+    document.querySelector('.header-der div:last-child strong').textContent = nombresSucursales[ID_SUCURSAL_ACTUAL] || "BC";
+
     const contenedorOrdenes = document.getElementById("lista-ordenes");
     const modal = document.getElementById("modal-detalle");
     const btnCerrarModal = document.getElementById("btn-cerrar-modal");
@@ -17,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     async function cargarOrdenesPendientes() {
-        // AHORA SÍ: minúscula en 'estado' y cruzamos con la tabla clientes
+        // Usamos ID_SUCURSAL_ACTUAL (el que viene del legajo del empleado)
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
             .select('*, clientes(nombre)') 
@@ -41,8 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
         data.forEach(orden => {
             const patenteFormateada = orden.patente;
             const iconoEfectivo = orden.efectivo_pedido > 0 ? `<div class="dinero-icon">💵</div>` : '';
-
-            // Extraemos el nombre real que viene de la tabla clientes
             const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
 
             const tarjeta = document.createElement("div");
