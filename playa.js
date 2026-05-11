@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contenedorOrdenes.innerHTML = ""; 
 
         data.forEach(orden => {
-            const patenteFormateada = orden.patente.length === 7 ? `${orden.patente.slice(0,2)} ${orden.patente.slice(2,5)} ${orden.patente.slice(5,7)}` : orden.patente;
+            const patenteFormateada = orden.patente;
             const iconoEfectivo = orden.efectivo_pedido > 0 ? `<div class="dinero-icon">💵</div>` : '';
 
             // Extraemos el nombre real que viene de la tabla clientes
