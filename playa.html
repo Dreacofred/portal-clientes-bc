@@ -23,7 +23,7 @@
         .status-tag { background-color: #f7b731; color: black; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-left: 15px;}
         .dinero-icon { font-size: 24px; margin-left: 15px;}
 
-        /* ESTILOS DEL MODAL (Segunda Imagen) */
+        /* ESTILOS DEL MODAL */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .modal-contenido { background: #111; border: 3px solid #C8102E; border-radius: 15px; padding: 30px; width: 100%; max-width: 450px; position: relative; }
         .btn-cerrar { position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
@@ -49,19 +49,33 @@
             background: #ff7675;
             color: white;
         }
+
+        /* --- AJUSTES PARA CELULAR --- */
+        @media (max-width: 600px) {
+            .header-rojo {
+                padding: 12px 15px !important; 
+            }
+            .header-der {
+                gap: 10px !important;
+            }
+        }
     </style>
 </head>
 <body>
 
     <header class="header-rojo">
         <div class="header-izq">
-            <h1 style="color:white;">BC</h1>
-            <h2 style="color:white; margin-left:10px;">Despacho Playa</h2>
+            <h1 style="color:white; margin: 0;">BC</h1>
+            <!-- Forzamos el salto de línea con <br> para que no ocupe a lo ancho -->
+            <h2 style="color:white; margin: 0 0 0 10px; font-size: 16px; line-height: 1.1;">Despacho<br>Playa</h2>
         </div>
-        <div class="header-der" style="text-align: right;">
-            <div>Operador: <strong id="nombre-operador">---</strong></div>
-            <div style="opacity: 0.8; font-size: 11px;">Sucursal: <strong id="nombre-sucursal">---</strong></div>
-            <button id="btn-cerrar-sesion" class="btn-logout">SALIR</button>
+        <div class="header-der" style="gap: 15px;">
+            <!-- Apilamos operador y sucursal -->
+            <div style="text-align: right; line-height: 1.3;">
+                <div style="font-size: 13px; color: white;">👤 <strong id="nombre-operador">---</strong></div>
+                <div style="opacity: 0.8; font-size: 11px;">📍 <strong id="nombre-sucursal">---</strong></div>
+            </div>
+            <button id="btn-cerrar-sesion" class="btn-logout" style="margin: 0;">SALIR</button>
         </div>
     </header>
 
