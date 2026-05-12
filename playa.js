@@ -106,39 +106,89 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnIniciar = document.getElementById("btn-iniciar-carga");
     if(btnIniciar) {
-        btnIniciar.addEventListener("click", async () => {
+        // Usamos .onclick para asegurarnos de que no se dupliquen los eventos
+        btnIniciar.onclick = async () => {
             
-            // 1. Cambiamos visualmente el botón para evitar doble clic
+            // 1. Bloqueamos el botón temporalmente
             btnIniciar.disabled = true;
-            btnIniciar.textContent = "PROCESANDO...";
+            btnIniciar.textContent = "VERIFICANDO...";
 
-            // 2. Actualizamos la base de datos
-            const { error } = await supabaseCliente
+            // 2. Buscamos los datos exactos de la orden
+            const { data: orden, error: errOrden } = await supabaseCliente
                 .from('ordenes_carga')
-                .update({ 
-                    estado: 'DESPACHADO',
-                    fecha_despacho: new Date().toISOString() // Guarda fecha y hora exacta
-                })
-                .eq('id', ordenActualizadaID);
+                .select('*')
+                .eq('id', ordenActualizadaID)
+                .single();
 
-            if (error) {
-                console.error("Error al despachar:", error);
-                alert("No se pudo registrar. Revisá la conexión.");
+            if (errOrden || !orden) {
+                alert("Error al leer la orden. Reintentá.");
                 btnIniciar.disabled = false;
                 btnIniciar.textContent = "INICIAR CARGA";
-            } else {
-                // 3. Éxito: Cerramos el modal y limpiamos la pantalla del playero
-                modal.style.display = "none";
-                
-                // Esta función vuelve a consultar Supabase y, como el estado ya no es 
-                // 'PENDIENTE', la tarjeta desaparece sola de la vista de Agustín.
-                cargarOrdenesPendientes();
-
-                // Reset del botón para la próxima orden
-                btnIniciar.disabled = false;
-                btnIniciar.innerHTML = '<span class="icono-check">✔</span> INICIAR CARGA';
+                return;
             }
-        });
+
+            // 3. Buscamos si ese cliente específico requiere foto
+            const { data: cliente, error: errCliente } = await supabaseCliente
+                .from('clientes')
+                .select('nombre, requiere_foto_remito')
+                .eq('id', orden.cliente_id)
+                .single();
+
+            if (errCliente || !cliente) {
+                alert("Error al verificar los datos del cliente.");
+                btnIniciar.disabled = false;
+                btnIniciar.textContent = "INICIAR CARGA";
+                return;
+            }
+
+            // 4. EL CEREBRO DEL BOTÓN (Bifurcación)
+            if (cliente.requiere_foto_remito === true) {
+                
+                // === RUTA A (LLEVA FOTO) ===
+                // Por ahora dejamos una alerta para probar que el filtro funciona.
+                // En el próximo paso, acá vamos a hacer que se abra la cámara.
+                alert(`📸 El cliente ${cliente.nombre} REQUIERE FOTO de la factura o remito.\n(En breve habilitaremos la cámara aquí).`);
+                
+                // Restauramos el botón porque todavía no hicimos el despacho
+                btnIniciar.disabled = false;
+                btnIniciar.textContent = "INICIAR CARGA";
+                
+            } else {
+                
+                // === RUTA B (NO LLEVA FOTO) ===
+                // Cartel de seguridad para evitar "dedazos"
+                const mensajeAlerta = `⚠️ Está a punto de despachar ${orden.litros_pedidos} Litros a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
+                
+                if (!confirm(mensajeAlerta)) {
+                    // Si el playero se arrepintió y toca Cancelar, frena todo.
+                    btnIniciar.disabled = false;
+                    btnIniciar.textContent = "INICIAR CARGA";
+                    return;
+                }
+
+                // Si tocó Aceptar, despacha directamente como hacíamos antes
+                btnIniciar.textContent = "GUARDANDO...";
+                const { error: errUpdate } = await supabaseCliente
+                    .from('ordenes_carga')
+                    .update({ 
+                        estado: 'DESPACHADO',
+                        fecha_despacho: new Date().toISOString()
+                    })
+                    .eq('id', ordenActualizadaID);
+
+                if (errUpdate) {
+                    alert("No se pudo registrar en la base de datos.");
+                    btnIniciar.disabled = false;
+                    btnIniciar.textContent = "INICIAR CARGA";
+                } else {
+                    // ÉXITO
+                    modal.style.display = "none";
+                    cargarOrdenesPendientes();
+                    btnIniciar.disabled = false;
+                    btnIniciar.innerHTML = '<span class="icono-check">✔</span> INICIAR CARGA';
+                }
+            }
+        };
     }
 
     const btnSalir = document.getElementById("btn-cerrar-sesion");
