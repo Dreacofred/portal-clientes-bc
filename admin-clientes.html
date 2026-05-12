@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alta de Clientes - BC Combustibles</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header class="header-rojo">
+        <div class="header-izq">
+            <h1><i>BC</i> Combustibles</h1>
+            <span class="separador">|</span>
+            <h2>Administración</h2>
+        </div>
+    </header>
+
+    <main class="contenedor">
+        <section class="tarjeta form-section">
+            <h3>Dar de Alta Nuevo Cliente</h3>
+            
+            <form id="form-alta-cliente">
+                <div class="fila-form">
+                    <div class="grupo-input ancho-doble">
+                        <label>Razón Social / Nombre</label>
+                        <input type="text" id="nombre" placeholder="Ej: TRANSPORTE FRANCOVIG SH" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label>CUIT</label>
+                        <input type="text" id="cuit" placeholder="Sin guiones" required>
+                    </div>
+                </div>
+
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Sucursal Madre (ID)</label>
+                        <select id="sucursal_madre_id" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="1">1 - Reconquista</option>
+                            <option value="2">2 - Avellaneda</option>
+                            <option value="3">3 - Florencia</option>
+                            <option value="4">4 - Recreo</option>
+                        </select>
+                    </div>
+                    <div class="grupo-input">
+                        <label>Límite de Efectivo ($)</label>
+                        <input type="number" id="limite_efectivo" placeholder="Ej: 50000" required>
+                    </div>
+                </div>
+
+                <div class="fila-form">
+                    <div class="grupo-input ancho-doble">
+                        <label>UUID de Autenticación (Supabase Auth)</label>
+                        <input type="text" id="auth_user_id" placeholder="Pegar el ID del usuario creado en Supabase Auth" required>
+                        <small class="nota">⚠️ Primero debés crear el usuario en Authentication y pegar su ID acá.</small>
+                    </div>
+                </div>
+
+                <div class="fila-form" style="gap: 40px; margin-top: 15px; margin-bottom: 25px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="requiere_foto_remito" style="width: 20px; height: 20px;">
+                        ¿Requiere foto de remito obligatoria?
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="habilitado" checked style="width: 20px; height: 20px;">
+                        Cliente Habilitado
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-rojo">Guardar Cliente</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Conexión a Supabase usando tus credenciales actuales
+        const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
+        const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        document.getElementById('form-alta-cliente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Recolectar datos del formulario
+            const nuevoCliente = {
+                nombre: document.getElementById('nombre').value.toUpperCase(),
+                cuit: document.getElementById('cuit').value,
+                sucursal_madre_id: parseInt(document.getElementById('sucursal_madre_id').value),
+                limite_efectivo: parseFloat(document.getElementById('limite_efectivo').value),
+                auth_user_id: document.getElementById('auth_user_id').value,
+                requiere_foto_remito: document.getElementById('requiere_foto_remito').checked,
+                habilitado: document.getElementById('habilitado').checked
+            };
+
+            // Insertar en la tabla 'clientes'
+            const { data, error } = await supabase
+                .from('clientes')
+                .insert([nuevoCliente]);
+
+            if (error) {
+                console.error("Error al guardar:", error);
+                alert("Error al dar de alta: " + error.message);
+            } else {
+                alert("¡Golazo! Cliente registrado exitosamente.");
+                document.getElementById('form-alta-cliente').reset();
+            }
+        });
+    </script>
+</body>
+</html>
