@@ -63,19 +63,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
-            tarjeta.innerHTML = `
+           tarjeta.innerHTML = `
                 <div class="visual-patente">
                     <div class="placa-azul">
                         <span class="placa-azul-txt">AR</span><span class="placa-azul-txt">Mercosur</span>
                     </div>
-                    <div class="placa-blanca">${patenteFormateada}</div>
+                    <!-- Agregamos un ajuste de tamaño para que no se corte en celulares -->
+                    <div class="placa-blanca" style="font-size: clamp(14px, 5vw, 20px); letter-spacing: 1px; padding: 4px;">${patenteFormateada}</div>
                 </div>
                 
                 <div class="info-orden">
-                    <div style="font-size: 18px; font-weight: 800; color: #333; margin-bottom: 2px; text-transform: uppercase;">
+                    <!-- Chofer en BLANCO para que resalte en el fondo oscuro -->
+                    <div style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px; text-transform: uppercase;">
                         👤 ${nombreChofer}
                     </div>
-                    <div style="font-size: 12px; color: #777; margin-bottom: 10px; text-transform: uppercase;">
+                    <!-- Empresa en un gris más claro -->
+                    <div style="font-size: 12px; color: #AAAAAA; margin-bottom: 10px; text-transform: uppercase;">
                         (${nombreEmpresa})
                     </div>
                     <div style="display:flex; align-items:end; gap: 10px;">
@@ -86,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 <span class="status-tag">${orden.estado}</span>
                 ${iconoEfectivo}
             `;
-
             tarjeta.addEventListener("click", () => {
                 abrirDetalleOrden(orden, patenteFormateada, nombreEmpresa);
             });
