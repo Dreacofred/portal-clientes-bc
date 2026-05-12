@@ -63,17 +63,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
-           tarjeta.innerHTML = `
+            tarjeta.innerHTML = `
                 <div class="visual-patente">
                     <div class="placa-azul">
                         <span class="placa-azul-txt">AR</span><span class="placa-azul-txt">Mercosur</span>
                     </div>
                     <!-- Agregamos un ajuste de tamaño para que no se corte en celulares -->
-                    <div class="placa-blanca" style="font-size: clamp(14px, 5vw, 20px); letter-spacing: 1px; padding: 4px;">${patenteFormateada}</div>
+                    <div class="placa-blanca" style="font-size: clamp(14px, 5vw, 24px); letter-spacing: 1px; padding: 4px;">${patenteFormateada}</div>
                 </div>
                 
                 <div class="info-orden">
-                    <!-- Chofer en BLANCO para que resalte en el fondo oscuro -->
+                    <!-- Chofer en BLANCO puro para que resalte -->
                     <div style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px; text-transform: uppercase;">
                         👤 ${nombreChofer}
                     </div>
@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <span class="status-tag">${orden.estado}</span>
                 ${iconoEfectivo}
             `;
+
             tarjeta.addEventListener("click", () => {
                 abrirDetalleOrden(orden, patenteFormateada, nombreEmpresa);
             });
