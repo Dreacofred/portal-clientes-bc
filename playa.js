@@ -58,6 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const patenteFormateada = orden.patente;
             const iconoEfectivo = orden.efectivo_pedido > 0 ? `<div class="dinero-icon">💵</div>` : '';
             const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
+            // Si por algún motivo no cargaron chofer, le ponemos un texto por defecto
+            const nombreChofer = orden.chofer ? orden.chofer : "SIN ESPECIFICAR"; 
 
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
@@ -68,13 +70,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <div class="placa-blanca">${patenteFormateada}</div>
                 </div>
+                
                 <div class="info-orden">
-                    <div class="lbl-info">EMPRESA</div>
-                    <div class="txt-empresa">${nombreEmpresa}</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #333; margin-bottom: 2px; text-transform: uppercase;">
+                        👤 ${nombreChofer}
+                    </div>
+                    <div style="font-size: 12px; color: #777; margin-bottom: 10px; text-transform: uppercase;">
+                        (${nombreEmpresa})
+                    </div>
                     <div style="display:flex; align-items:end; gap: 10px;">
                         <div class="txt-litros">${orden.litros_pedidos} L</div>
                     </div>
                 </div>
+                
                 <span class="status-tag">${orden.estado}</span>
                 ${iconoEfectivo}
             `;
@@ -145,8 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (cliente.requiere_foto_remito === true) {
                 
                 // === RUTA A (LLEVA FOTO) ===
-                // Por ahora dejamos una alerta para probar que el filtro funciona.
-                // En el próximo paso, acá vamos a hacer que se abra la cámara.
                 alert(`📸 El cliente ${cliente.nombre} REQUIERE FOTO de la factura o remito.\n(En breve habilitaremos la cámara aquí).`);
                 
                 // Restauramos el botón porque todavía no hicimos el despacho
