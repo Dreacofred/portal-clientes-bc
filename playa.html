@@ -32,10 +32,11 @@
 
         /* ESTILOS DEL MODAL */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-        .modal-contenido { background: #111; border: 3px solid #C8102E; border-radius: 15px; padding: 30px; width: 100%; max-width: 450px; position: relative; }
-        .btn-cerrar { position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .modal-contenido { background: #111; border: 3px solid #C8102E; border-radius: 15px; padding: 30px; width: 100%; max-width: 450px; position: relative; overflow-y: auto; max-height: 90vh; }
+        .btn-cerrar { position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; z-index: 10; }
         .btn-verde { width: 100%; background-color: #00b894; color: white; border: none; padding: 15px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 25px; transition: 0.2s;}
         .btn-verde:hover { background-color: #00a080; }
+        .btn-verde:disabled { background-color: #555; cursor: not-allowed; opacity: 0.6; }
         .icono-check { background: white; color: #00b894; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
         .detalle-texto { font-size: 16px; line-height: 1.8; margin-top: 20px; }
 
@@ -47,35 +48,12 @@
         @media (max-width: 768px) {
             .header-rojo { padding: 12px 15px !important; }
             .header-der { gap: 10px !important; }
-            
-            /* Cambio a diseño vertical (Apilado) */
-            .tarjeta-playa {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 15px;
-                padding: 15px;
-            }
-            .tarjeta-bloque-superior {
-                flex-direction: column;
-                text-align: center; /* Centra patente y nombres */
-                gap: 12px;
-            }
-            .info-orden {
-                margin-left: 0; /* Quitamos el margen lateral en celu */
-            }
-            .visual-patente {
-                margin: 0 auto; /* Centra la cajita de la patente */
-                width: 100%;
-                max-width: 180px; 
-            }
-            .placa-blanca {
-                font-size: 28px; /* Patente grande en el celular */
-            }
-            .tarjeta-bloque-inferior {
-                justify-content: space-between; /* Litros izq, Iconos der */
-                border-top: 1px solid #333; /* Linea divisoria */
-                padding-top: 15px;
-            }
+            .tarjeta-playa { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
+            .tarjeta-bloque-superior { flex-direction: column; text-align: center; gap: 12px; }
+            .info-orden { margin-left: 0; }
+            .visual-patente { margin: 0 auto; width: 100%; max-width: 180px; }
+            .placa-blanca { font-size: 28px; }
+            .tarjeta-bloque-inferior { justify-content: space-between; border-top: 1px solid #333; padding-top: 15px; }
             .status-tag { margin-left: 0; }
         }
     </style>
@@ -122,6 +100,25 @@
                 </div>
                 <div style="margin-top: 15px;">
                     <span class="status-tag" style="margin-left: 0;">PENDIENTE</span>
+                </div>
+            </div>
+
+            <!-- NUEVO: Interfaz de cámara (Oculta por defecto) -->
+            <div id="caja-camara" style="display: none; margin-top: 25px; text-align: center; border-top: 1px solid #333; padding-top: 20px;">
+                <label style="color: #fff; font-size: 16px; display: block; margin-bottom: 15px; font-weight: 600;">📸 Sacar foto del remito/factura (Obligatorio)</label>
+                
+                <!-- Input file oculto, acepta imágenes y gatilla cámara en móviles -->
+                <input type="file" id="input-foto" accept="image/*" capture="camera" style="display: none;">
+                
+                <!-- Botón visible que hace clic en el input file -->
+                <button id="btn-abrir-camara" class="btn-logout" style="padding: 10px 20px; font-size: 14px; text-transform: uppercase; border-color: #fff; color: #fff; margin-bottom: 15px;">
+                    Abir Cámara / Seleccionar
+                </button>
+                
+                <!-- Vista previa de la foto tomada -->
+                <div id="vista-previa" style="margin-top: 15px; display: none;">
+                    <img id="img-preview" src="#" alt="Vista previa" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                    <div id="nombre-archivo-capturado" style="font-size: 11px; opacity: 0.6; margin-top: 5px; color: white;"></div>
                 </div>
             </div>
 
