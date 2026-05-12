@@ -75,12 +75,14 @@
         </section>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Conexión a Supabase usando tus credenciales actuales
         const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
         const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // CAMBIO ACÁ: Le ponemos supabaseCliente para que no choque con la librería global
+        const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.getElementById('form-alta-cliente').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -96,8 +98,8 @@
                 habilitado: document.getElementById('habilitado').checked
             };
 
-            // Insertar en la tabla 'clientes'
-            const { data, error } = await supabase
+            // Insertar en la tabla 'clientes' usando supabaseCliente
+            const { data, error } = await supabaseCliente
                 .from('clientes')
                 .insert([nuevoCliente]);
 
