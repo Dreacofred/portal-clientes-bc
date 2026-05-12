@@ -12,15 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // --- CORRECCIÓN DE CABECERA ---
     const nombresSucursales = { 1: "RECONQUISTA", 2: "AVELLANEDA", 3: "FLORENCIA", 4: "RECREO" };
-    
     const elNombre = document.getElementById('nombre-operador');
     const elSucursal = document.getElementById('nombre-sucursal');
 
     if(elNombre) elNombre.textContent = NOMBRE_OPERADOR;
     if(elSucursal) elSucursal.textContent = nombresSucursales[ID_SUCURSAL_ACTUAL] || "BC";
-    // ------------------------------
 
     const contenedorOrdenes = document.getElementById("lista-ordenes");
     const modal = document.getElementById("modal-detalle");
@@ -58,36 +55,33 @@ document.addEventListener("DOMContentLoaded", () => {
             const patenteFormateada = orden.patente;
             const iconoEfectivo = orden.efectivo_pedido > 0 ? `<div class="dinero-icon">💵</div>` : '';
             const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
-            // Si por algún motivo no cargaron chofer, le ponemos un texto por defecto
             const nombreChofer = orden.chofer ? orden.chofer : "SIN ESPECIFICAR"; 
 
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
+            
+            // Estructura renovada en dos bloques (Superior e Inferior)
             tarjeta.innerHTML = `
-                <div class="visual-patente">
-                    <div class="placa-azul">
-                        <span class="placa-azul-txt">AR</span><span class="placa-azul-txt">Mercosur</span>
+                <div class="tarjeta-bloque-superior">
+                    <div class="visual-patente">
+                        <div class="placa-azul">
+                            <span class="placa-azul-txt">AR</span><span class="placa-azul-txt">Mercosur</span>
+                        </div>
+                        <div class="placa-blanca">${patenteFormateada}</div>
                     </div>
-                    <!-- Agregamos un ajuste de tamaño para que no se corte en celulares -->
-                    <div class="placa-blanca" style="font-size: clamp(14px, 5vw, 24px); letter-spacing: 1px; padding: 4px;">${patenteFormateada}</div>
-                </div>
-                
-                <div class="info-orden">
-                    <!-- Chofer en BLANCO puro para que resalte -->
-                    <div style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px; text-transform: uppercase;">
-                        👤 ${nombreChofer}
-                    </div>
-                    <!-- Empresa en un gris más claro -->
-                    <div style="font-size: 12px; color: #AAAAAA; margin-bottom: 10px; text-transform: uppercase;">
-                        (${nombreEmpresa})
-                    </div>
-                    <div style="display:flex; align-items:end; gap: 10px;">
-                        <div class="txt-litros">${orden.litros_pedidos} L</div>
+                    <div class="info-orden">
+                        <div class="chofer-txt">👤 ${nombreChofer}</div>
+                        <div class="empresa-txt">(${nombreEmpresa})</div>
                     </div>
                 </div>
                 
-                <span class="status-tag">${orden.estado}</span>
-                ${iconoEfectivo}
+                <div class="tarjeta-bloque-inferior">
+                    <div class="txt-litros">${orden.litros_pedidos} L</div>
+                    <div class="tarjeta-badges">
+                        <span class="status-tag">${orden.estado}</span>
+                        ${iconoEfectivo}
+                    </div>
+                </div>
             `;
 
             tarjeta.addEventListener("click", () => {
@@ -117,14 +111,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnIniciar = document.getElementById("btn-iniciar-carga");
     if(btnIniciar) {
-        // Usamos .onclick para asegurarnos de que no se dupliquen los eventos
         btnIniciar.onclick = async () => {
-            
-            // 1. Bloqueamos el botón temporalmente
             btnIniciar.disabled = true;
             btnIniciar.textContent = "VERIFICANDO...";
 
-            // 2. Buscamos los datos exactos de la orden
             const { data: orden, error: errOrden } = await supabaseCliente
                 .from('ordenes_carga')
                 .select('*')
@@ -138,7 +128,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 3. Buscamos si ese cliente específico requiere foto
             const { data: cliente, error: errCliente } = await supabaseCliente
                 .from('clientes')
                 .select('nombre, requiere_foto_remito')
@@ -152,30 +141,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 4. EL CEREBRO DEL BOTÓN (Bifurcación)
             if (cliente.requiere_foto_remito === true) {
-                
-                // === RUTA A (LLEVA FOTO) ===
                 alert(`📸 El cliente ${cliente.nombre} REQUIERE FOTO de la factura o remito.\n(En breve habilitaremos la cámara aquí).`);
-                
-                // Restauramos el botón porque todavía no hicimos el despacho
                 btnIniciar.disabled = false;
                 btnIniciar.textContent = "INICIAR CARGA";
-                
             } else {
-                
-                // === RUTA B (NO LLEVA FOTO) ===
-                // Cartel de seguridad para evitar "dedazos"
                 const mensajeAlerta = `⚠️ Está a punto de despachar ${orden.litros_pedidos} Litros a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
-                
                 if (!confirm(mensajeAlerta)) {
-                    // Si el playero se arrepintió y toca Cancelar, frena todo.
                     btnIniciar.disabled = false;
                     btnIniciar.textContent = "INICIAR CARGA";
                     return;
                 }
 
-                // Si tocó Aceptar, despacha directamente como hacíamos antes
                 btnIniciar.textContent = "GUARDANDO...";
                 const { error: errUpdate } = await supabaseCliente
                     .from('ordenes_carga')
@@ -190,7 +167,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     btnIniciar.disabled = false;
                     btnIniciar.textContent = "INICIAR CARGA";
                 } else {
-                    // ÉXITO
                     modal.style.display = "none";
                     cargarOrdenesPendientes();
                     btnIniciar.disabled = false;
