@@ -8,20 +8,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #121212; color: #eee; }
+        
+        /* Layout Base Desktop (PC) */
         .tarjeta-playa { background: #1E1E1E; border-radius: 10px; margin-bottom: 15px; padding: 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;}
         .tarjeta-playa:hover { background: #252525; border-color: #C8102E; }
         
-        .visual-patente { width: 140px; text-align: center; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); overflow: hidden;}
+        /* Bloques divisores para que se adapte mejor */
+        .tarjeta-bloque-superior { display: flex; align-items: center; flex: 1; }
+        .tarjeta-bloque-inferior { display: flex; align-items: center; justify-content: flex-end; gap: 15px; min-width: 180px; }
+        .tarjeta-badges { display: flex; align-items: center; }
+
+        .visual-patente { width: 140px; flex-shrink: 0; text-align: center; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); overflow: hidden;}
         .placa-azul { background-color: #2D4C82; height: 16px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;}
         .placa-azul-txt { color: white; font-weight: bold; font-size: 8px;}
         .placa-blanca { background-color: white; color: black; font-weight: bold; font-size: 24px; padding: 5px 0; letter-spacing: 2px;}
         
-        .info-orden { flex: 1; margin-left: 20px; }
-        .lbl-info { font-size: 11px; opacity: 0.6; text-transform: uppercase; }
-        .txt-empresa { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-        .txt-litros { font-size: 20px; font-weight: 700; color: #fff; }
-        .status-tag { background-color: #f7b731; color: black; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-left: 15px;}
-        .dinero-icon { font-size: 24px; margin-left: 15px;}
+        .info-orden { margin-left: 20px; }
+        .chofer-txt { font-size: 18px; font-weight: 800; color: #FFFFFF; margin-bottom: 2px; text-transform: uppercase; }
+        .empresa-txt { font-size: 12px; color: #AAAAAA; text-transform: uppercase; }
+        .txt-litros { font-size: 22px; font-weight: 700; color: #fff; }
+        .status-tag { background-color: #f7b731; color: black; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-left: 10px;}
+        .dinero-icon { font-size: 24px; margin-left: 10px;}
 
         /* ESTILOS DEL MODAL */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
@@ -33,31 +40,43 @@
         .detalle-texto { font-size: 16px; line-height: 1.8; margin-top: 20px; }
 
         /* Botón de Cerrar Sesión Estilizado */
-        .btn-logout {
-            background: rgba(255,255,255,0.1);
-            color: #ff7675;
-            border: 1px solid #ff7675;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 5px;
-            transition: 0.3s;
-        }
-        .btn-logout:hover {
-            background: #ff7675;
-            color: white;
-        }
+        .btn-logout { background: rgba(255,255,255,0.1); color: #ff7675; border: 1px solid #ff7675; padding: 4px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; font-weight: bold; margin-top: 5px; transition: 0.3s; }
+        .btn-logout:hover { background: #ff7675; color: white; }
 
-        /* --- AJUSTES PARA CELULAR --- */
-        @media (max-width: 600px) {
-            .header-rojo {
-                padding: 12px 15px !important; 
+        /* --- AJUSTES PARA CELULAR Y TABLETS --- */
+        @media (max-width: 768px) {
+            .header-rojo { padding: 12px 15px !important; }
+            .header-der { gap: 10px !important; }
+            
+            /* Cambio a diseño vertical (Apilado) */
+            .tarjeta-playa {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+                padding: 15px;
             }
-            .header-der {
-                gap: 10px !important;
+            .tarjeta-bloque-superior {
+                flex-direction: column;
+                text-align: center; /* Centra patente y nombres */
+                gap: 12px;
             }
+            .info-orden {
+                margin-left: 0; /* Quitamos el margen lateral en celu */
+            }
+            .visual-patente {
+                margin: 0 auto; /* Centra la cajita de la patente */
+                width: 100%;
+                max-width: 180px; 
+            }
+            .placa-blanca {
+                font-size: 28px; /* Patente grande en el celular */
+            }
+            .tarjeta-bloque-inferior {
+                justify-content: space-between; /* Litros izq, Iconos der */
+                border-top: 1px solid #333; /* Linea divisoria */
+                padding-top: 15px;
+            }
+            .status-tag { margin-left: 0; }
         }
     </style>
 </head>
@@ -66,11 +85,9 @@
     <header class="header-rojo">
         <div class="header-izq">
             <h1 style="color:white; margin: 0;">BC</h1>
-            <!-- Forzamos el salto de línea con <br> para que no ocupe a lo ancho -->
             <h2 style="color:white; margin: 0 0 0 10px; font-size: 16px; line-height: 1.1;">Despacho<br>Playa</h2>
         </div>
         <div class="header-der" style="gap: 15px;">
-            <!-- Apilamos operador y sucursal -->
             <div style="text-align: right; line-height: 1.3;">
                 <div style="font-size: 13px; color: white;">👤 <strong id="nombre-operador">---</strong></div>
                 <div style="opacity: 0.8; font-size: 11px;">📍 <strong id="nombre-sucursal">---</strong></div>
