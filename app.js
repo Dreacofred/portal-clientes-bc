@@ -4,7 +4,7 @@ const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
-let limiteEfectivoActual = 0; // NUEVO: Variable para guardar el límite del cliente
+let limiteEfectivoActual = 0; 
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -16,10 +16,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-    // --- B. DATOS DEL CLIENTE (Actualizado para traer el límite) ---
+    // --- B. DATOS DEL CLIENTE ---
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
         .from('clientes')
-        .select('id, nombre, limite_efectivo') // Traemos también el límite
+        .select('id, nombre, limite_efectivo') 
         .eq('auth_user_id', user.id)
         .single();
 
@@ -29,10 +29,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     idClienteActual = clienteDatos.id;
-    limiteEfectivoActual = clienteDatos.limite_efectivo || 0; // Guardamos el límite en memoria
+    // Forzamos a que el límite sea leído como un número matemático
+    limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0; 
     
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
+
+    // PUNTO 1: Cambiar el placeholder (texto gris) para mostrar el límite real
+    const inputEfectivo = document.getElementById("efectivo");
+    if (inputEfectivo) {
+        inputEfectivo.placeholder = `Máx permitido: $${limiteEfectivoActual}`;
+    }
 
     const formulario = document.getElementById("formulario-orden");
 
@@ -112,21 +119,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     cargarOrdenes();
     cargarSugerencias();
 
-    // --- E. ENVÍO DEL FORMULARIO (Con validación de límite) ---
+    // --- E. ENVÍO DEL FORMULARIO ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
         const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
+        const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
+        
         const efectivoStr = document.getElementById("efectivo").value || "0";
         const efectivo = parseInt(efectivoStr);
-        const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
 
         // --- VALIDACIÓN DE EFECTIVO (PUNTO 2) ---
         if (efectivo > limiteEfectivoActual) {
-            alert(`⚠️ El monto solicitado ($${efectivo}) supera tu límite autorizado ($${limiteEfectivoActual}).\nPor favor, ingresá un monto menor o contactate con administración.`);
-            return;
+            alert(`⚠️ OPERACIÓN DENEGADA\nEl monto solicitado ($${efectivo}) supera tu límite autorizado ($${limiteEfectivoActual}).`);
+            return; // El "return" detiene todo, no deja guardar en la base de datos
         }
 
         if (!sucursal || !patente || !chofer || !litros) {
