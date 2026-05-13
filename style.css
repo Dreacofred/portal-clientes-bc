@@ -187,3 +187,25 @@ input:focus, select:focus {
 .fila-despachada {
     background-color: rgba(46, 204, 113, 0.15) !important; 
 }
+.celda-acciones {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-accion {
+    border: none;
+    background: #f8f9fa;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: 0.2s;
+    font-size: 1.1em;
+}
+
+.btn-accion:hover {
+    transform: scale(1.2);
+}
+
+.btn-accion.edit:hover { background-color: #e2f3e5; }
+.btn-accion.delete:hover { background-color: #fdeaea; }
