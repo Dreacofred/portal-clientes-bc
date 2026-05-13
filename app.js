@@ -4,7 +4,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
 let limiteEfectivoActual = 0;
-let idOrdenEditando = null; // Para saber si estamos creando o editando
+let idOrdenEditando = null; 
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const formulario = document.getElementById("formulario-orden");
     const btnEnviar = formulario.querySelector('button[type="submit"]');
 
-    // --- B. BLOQUEO DE TECLA ENTER (PUNTO 1) ---
+    // --- B. BLOQUEO DE TECLA ENTER ---
     formulario.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && e.target.nodeName === "INPUT") {
             e.preventDefault();
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // --- C. TABLA DE ÓRDENES CON ACCIONES (PUNTO 2) ---
+    // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const fila = document.createElement("tr");
             let fechaRaw = orden.fecha_creacion;
             let claseEstado = "pendiente";
-            let accionesHtml = ""; // Aquí pondremos los botones si está pendiente
+            let accionesHtml = "";
 
             if (orden.estado === 'DESPACHADO') {
                 fila.classList.add("fila-despachada");
@@ -59,7 +59,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
                 accionesHtml = `<span style="color: #999; font-size: 0.8em;">Cerrada</span>`;
             } else {
-                // Si está pendiente, habilitamos botones de editar y borrar
                 accionesHtml = `
                     <div class="celda-acciones">
                         <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id})">✏️</button>
@@ -91,7 +90,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- D. FUNCIONES DE ACCIÓN (ELIMINAR Y EDITAR) ---
+    // --- D. RECUPERAMOS LAS SUGERENCIAS (DATALISTS) ---
+    async function cargarSugerencias() {
+        const { data, error } = await supabaseCliente
+            .from('ordenes_carga')
+            .select('patente, chofer')
+            .eq('cliente_id', idClienteActual);
+
+        if (error) return;
+
+        const patentesUnicas = [...new Set(data.map(item => item.patente))];
+        const choferesUnicos = [...new Set(data.map(item => item.chofer))];
+
+        const listadoPatentes = document.getElementById("lista-patentes");
+        const listadoChoferes = document.getElementById("lista-choferes");
+
+        listadoPatentes.innerHTML = "";
+        listadoChoferes.innerHTML = "";
+
+        patentesUnicas.forEach(p => { if(p) listadoPatentes.innerHTML += `<option value="${p}">`; });
+        choferesUnicos.forEach(c => { if(c) listadoChoferes.innerHTML += `<option value="${c}">`; });
+    }
+
+    // --- E. FUNCIONES DE ACCIÓN (ELIMINAR Y EDITAR) ---
     window.eliminarOrden = async (id) => {
         if (!confirm("¿Seguro que querés anular esta orden?")) return;
         const { error } = await supabaseCliente.from('ordenes_carga').delete().eq('id', id);
@@ -101,7 +122,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal) => {
         idOrdenEditando = id;
-        document.getElementById("sucursal").value = sucursal;
+        document.getElementById("sucursal").value = sucursal || "";
         document.getElementById("patente").value = patente;
         document.getElementById("chofer").value = chofer;
         document.getElementById("litros").value = litros;
@@ -109,11 +130,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("nro_orden_cliente").value = nroCliente;
         
         btnEnviar.textContent = "Actualizar Orden de Carga";
-        btnEnviar.style.backgroundColor = "#28a745"; // Color verde mientras edita
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube al formulario
+        btnEnviar.style.backgroundColor = "#28a745"; 
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
     };
 
-    // --- E. ENVÍO O ACTUALIZACIÓN ---
+    // Inicializamos tabla y sugerencias
+    cargarOrdenes();
+    cargarSugerencias();
+
+    // --- F. ENVÍO O ACTUALIZACIÓN (CON VALIDACIÓN ESTRICTA) ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
         const sucursal = document.getElementById("sucursal").value;
@@ -122,6 +147,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const litros = document.getElementById("litros").value;
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
         const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
+
+        // Validación estricta de campos obligatorios
+        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !patente || !chofer || !litros) {
+            alert("⚠️ Por favor, completá todos los campos obligatorios (Sucursal, Patente, Chofer y Litros).");
+            return;
+        }
 
         if (efectivo > limiteEfectivoActual) {
             alert(`Monto solicitado ($${efectivo}) supera el límite ($${limiteEfectivoActual}).`);
@@ -140,10 +171,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         let resultado;
         if (idOrdenEditando) {
-            // Si estábamos editando, hacemos un UPDATE
             resultado = await supabaseCliente.from('ordenes_carga').update(datos).eq('id', idOrdenEditando);
         } else {
-            // Si no, hacemos un INSERT normal
             resultado = await supabaseCliente.from('ordenes_carga').insert([datos]);
         }
 
@@ -153,12 +182,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             alert(idOrdenEditando ? "¡Orden actualizada!" : "¡Orden emitida!");
             idOrdenEditando = null;
             btnEnviar.textContent = "Emitir Orden de Carga";
-            btnEnviar.style.backgroundColor = ""; // Vuelve al rojo original
+            btnEnviar.style.backgroundColor = ""; 
             formulario.reset(); 
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             cargarOrdenes();
+            cargarSugerencias(); // Refrescamos las sugerencias por si agregó patente nueva
         }
     });
 
-    cargarOrdenes();
+    // --- G. LOGOUT ---
+    const btnSalir = document.querySelector('.icono-salir');
+    if (btnSalir) {
+        btnSalir.addEventListener('click', async () => {
+            await supabaseCliente.auth.signOut();
+            window.location.href = "login.html";
+        });
+    }
 });
