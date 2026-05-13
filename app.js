@@ -4,6 +4,7 @@ const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
+let limiteEfectivoActual = 0; // NUEVO: Variable para guardar el límite del cliente
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -15,10 +16,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-    // --- B. DATOS DEL CLIENTE ---
+    // --- B. DATOS DEL CLIENTE (Actualizado para traer el límite) ---
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
         .from('clientes')
-        .select('id, nombre')
+        .select('id, nombre, limite_efectivo') // Traemos también el límite
         .eq('auth_user_id', user.id)
         .single();
 
@@ -28,12 +29,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     idClienteActual = clienteDatos.id;
+    limiteEfectivoActual = clienteDatos.limite_efectivo || 0; // Guardamos el límite en memoria
+    
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
 
     const formulario = document.getElementById("formulario-orden");
 
-    // --- C. TABLA DE ÓRDENES (ACTUALIZADA) ---
+    // --- C. TABLA DE ÓRDENES ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
@@ -50,21 +53,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         data.forEach(orden => {
             const fila = document.createElement("tr");
-
-            // Lógica: Si está despachado, usamos fecha_despacho y pintamos la fila
             let fechaRaw = orden.fecha_creacion;
             let claseEstado = "pendiente";
             
             if (orden.estado === 'DESPACHADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
-                // Mostramos la hora en que se cargó realmente el camión
-                if (orden.fecha_despacho) {
-                    fechaRaw = orden.fecha_despacho;
-                }
+                if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
             }
 
-            // PROCESAMIENTO DE FECHA
             let fechaFormateada = "Sin fecha";
             if (fechaRaw) {
                 const fechaLimpia = fechaRaw.replace(" ", "T");
@@ -77,7 +74,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const nombreSucursal = mapaSucursales[orden.sucursal_carga_id] || 'Sin asignar';
 
-            // NUEVO: Se agrega la columna para mostrar el Número de Orden del Cliente
             fila.innerHTML = `
                 <td>#${orden.id}</td>
                 <td><strong>${orden.nro_orden_cliente || '-'}</strong></td>
@@ -116,17 +112,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     cargarOrdenes();
     cargarSugerencias();
 
-    // --- E. ENVÍO DEL FORMULARIO ---
+    // --- E. ENVÍO DEL FORMULARIO (Con validación de límite) ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
         const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
-        const efectivo = document.getElementById("efectivo").value || 0; 
-        
-        // NUEVO: Capturamos el texto que escribió el cliente en su número de control
+        const efectivoStr = document.getElementById("efectivo").value || "0";
+        const efectivo = parseInt(efectivoStr);
         const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
+
+        // --- VALIDACIÓN DE EFECTIVO (PUNTO 2) ---
+        if (efectivo > limiteEfectivoActual) {
+            alert(`⚠️ El monto solicitado ($${efectivo}) supera tu límite autorizado ($${limiteEfectivoActual}).\nPor favor, ingresá un monto menor o contactate con administración.`);
+            return;
+        }
 
         if (!sucursal || !patente || !chofer || !litros) {
             alert("Por favor, completá todos los campos obligatorios.");
@@ -141,8 +142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 patente: patente, 
                 chofer: chofer,
                 litros_pedidos: parseInt(litros),
-                efectivo_pedido: parseInt(efectivo),
-                nro_orden_cliente: nroOrdenCliente, // NUEVO: Lo inyectamos acá para que vaya a Supabase
+                efectivo_pedido: efectivo,
+                nro_orden_cliente: nroOrdenCliente,
                 estado: 'PENDIENTE'
             }]);
 
