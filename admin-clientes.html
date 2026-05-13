@@ -3,24 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alta de Clientes - BC Combustibles</title>
+    <title>Gestión de Clientes - BC Combustibles</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .lista-clientes { margin-top: 40px; }
+        .cliente-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .cliente-item span.tag-especial { background: #ffeaa7; color: #d35400; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .btn-editar { background: #0984e3; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-editar:hover { background: #74b9ff; }
+        .form-edicion { display: none; background: #fdfdfd; padding: 20px; border: 2px solid #0984e3; border-radius: 8px; margin-bottom: 20px; }
+    </style>
 </head>
 <body>
 
     <header class="header-rojo">
-        <div class="header-izq">
-            <h1><i>BC</i> Combustibles</h1>
-            <span class="separador">|</span>
-            <h2>Administración</h2>
+        <div class="header-izq" style="display: flex; align-items: center;">
+            <img src="https://bjhykcdhafoqpfkpngvw.supabase.co/storage/v1/object/public/remitos/Logo.jpeg" style="height: 45px; border-radius: 50%; margin-right: 10px; border: 2px solid white;">
+            <div>
+                <h1 style="margin: 0;">BC Combustibles</h1>
+                <h2 style="margin: 0; font-size: 14px;">Administración de Clientes</h2>
+            </div>
         </div>
     </header>
 
     <main class="contenedor">
+        
+        <section id="panel-edicion" class="form-edicion">
+            <h3 style="color: #0984e3; margin-top: 0;">✏️ Editando: <span id="edit-nombre-titulo"></span></h3>
+            <form id="form-editar-cliente">
+                <input type="hidden" id="edit-id">
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Límite de Efectivo ($)</label>
+                        <input type="number" id="edit-limite_efectivo" required>
+                    </div>
+                </div>
+                <div class="fila-form" style="gap: 20px; margin-top: 15px; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="edit-requiere_foto" style="width: 20px; height: 20px;">
+                        Foto de remito obligatoria
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #fff3e0; padding: 5px 10px; border-radius: 5px;">
+                        <input type="checkbox" id="edit-formato_especial" style="width: 20px; height: 20px;">
+                        <strong>Formato Especial (Órdenes Lts/Efe)</strong>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" style="background: #0984e3; color: white; border: none; padding: 10px; border-radius: 5px; flex: 1; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
+                    <button type="button" id="btn-cancelar-edicion" style="background: #ccc; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Cancelar</button>
+                </div>
+            </form>
+        </section>
+
+
         <section class="tarjeta form-section">
             <h3>Dar de Alta Nuevo Cliente</h3>
-            
             <form id="form-alta-cliente">
                 <div class="fila-form">
                     <div class="grupo-input ancho-doble">
@@ -61,33 +99,100 @@
                 <div class="fila-form" style="gap: 40px; margin-top: 15px; margin-bottom: 25px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="requiere_foto_remito" style="width: 20px; height: 20px;">
-                        ¿Requiere foto de remito obligatoria?
+                        Requiere foto obligatoria
                     </label>
 
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="habilitado" checked style="width: 20px; height: 20px;">
-                        Cliente Habilitado
+                        Habilitado
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #d35400;">
+                        <input type="checkbox" id="formato_especial_alta" style="width: 20px; height: 20px;">
+                        <strong>Usar Formato Especial</strong>
                     </label>
                 </div>
 
-                <button type="submit" class="btn-rojo">Guardar Cliente</button>
+                <button type="submit" class="btn-rojo">Guardar Cliente Nuevo</button>
             </form>
+        </section>
+
+        <section class="lista-clientes">
+            <h3>Clientes Registrados</h3>
+            <div id="contenedor-lista-clientes">Cargando clientes...</div>
         </section>
     </main>
 
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Conexión a Supabase usando tus credenciales actuales
         const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
         const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
-        
-        // CAMBIO ACÁ: Le ponemos supabaseCliente para que no choque con la librería global
         const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // --- CARGAR LISTA DE CLIENTES ---
+        async function cargarClientes() {
+            const contenedor = document.getElementById("contenedor-lista-clientes");
+            const { data, error } = await supabaseCliente.from('clientes').select('*').order('nombre', { ascending: true });
+
+            if (error) { contenedor.innerHTML = "Error al cargar los clientes."; return; }
+
+            contenedor.innerHTML = "";
+            data.forEach(c => {
+                const tagEspecial = c.formato_especial ? '<span class="tag-especial">Formato Especial</span>' : '';
+                const item = document.createElement("div");
+                item.className = "cliente-item";
+                item.innerHTML = `
+                    <div>
+                        <strong>${c.nombre}</strong> <span style="color:#888; font-size:12px;">(CUIT: ${c.cuit})</span>
+                        <div style="font-size: 13px; color: #555; margin-top: 5px;">
+                            Límite Efectivo: $${c.limite_efectivo} | Foto Req: ${c.requiere_foto_remito ? 'Sí' : 'No'} ${tagEspecial}
+                        </div>
+                    </div>
+                    <button class="btn-editar" onclick="abrirEdicion('${c.id}', '${c.nombre}', ${c.limite_efectivo}, ${c.requiere_foto_remito}, ${c.formato_especial})">Editar</button>
+                `;
+                contenedor.appendChild(item);
+            });
+        }
+
+        // --- ABRIR PANEL DE EDICIÓN ---
+        window.abrirEdicion = (id, nombre, limite, requiereFoto, formatoEspecial) => {
+            document.getElementById("panel-edicion").style.display = "block";
+            document.getElementById("edit-id").value = id;
+            document.getElementById("edit-nombre-titulo").textContent = nombre;
+            document.getElementById("edit-limite_efectivo").value = limite;
+            document.getElementById("edit-requiere_foto").checked = requiereFoto === true;
+            document.getElementById("edit-formato_especial").checked = formatoEspecial === true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // --- CERRAR EDICIÓN ---
+        document.getElementById("btn-cancelar-edicion").addEventListener("click", () => {
+            document.getElementById("panel-edicion").style.display = "none";
+        });
+
+        // --- GUARDAR EDICIÓN ---
+        document.getElementById('form-editar-cliente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const updates = {
+                limite_efectivo: parseFloat(document.getElementById('edit-limite_efectivo').value),
+                requiere_foto_remito: document.getElementById('edit-requiere_foto').checked,
+                formato_especial: document.getElementById('edit-formato_especial').checked
+            };
+
+            const { error } = await supabaseCliente.from('clientes').update(updates).eq('id', id);
+
+            if (error) alert("Error al editar: " + error.message);
+            else {
+                alert("Cliente actualizado correctamente.");
+                document.getElementById("panel-edicion").style.display = "none";
+                cargarClientes();
+            }
+        });
+
+        // --- GUARDAR ALTA (NUEVO) ---
         document.getElementById('form-alta-cliente').addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            // Recolectar datos del formulario
             const nuevoCliente = {
                 nombre: document.getElementById('nombre').value.toUpperCase(),
                 cuit: document.getElementById('cuit').value,
@@ -95,22 +200,22 @@
                 limite_efectivo: parseFloat(document.getElementById('limite_efectivo').value),
                 auth_user_id: document.getElementById('auth_user_id').value,
                 requiere_foto_remito: document.getElementById('requiere_foto_remito').checked,
-                habilitado: document.getElementById('habilitado').checked
+                habilitado: document.getElementById('habilitado').checked,
+                formato_especial: document.getElementById('formato_especial_alta').checked // NUEVO CAMPO
             };
 
-            // Insertar en la tabla 'clientes' usando supabaseCliente
-            const { data, error } = await supabaseCliente
-                .from('clientes')
-                .insert([nuevoCliente]);
+            const { error } = await supabaseCliente.from('clientes').insert([nuevoCliente]);
 
-            if (error) {
-                console.error("Error al guardar:", error);
-                alert("Error al dar de alta: " + error.message);
-            } else {
+            if (error) alert("Error al dar de alta: " + error.message);
+            else {
                 alert("¡Golazo! Cliente registrado exitosamente.");
                 document.getElementById('form-alta-cliente').reset();
+                cargarClientes(); // Recarga la lista abajo
             }
         });
+
+        // Cargar lista al inicio
+        cargarClientes();
     </script>
 </body>
 </html>
