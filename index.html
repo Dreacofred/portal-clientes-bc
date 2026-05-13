@@ -70,9 +70,25 @@
                 <label>Entrega Efectivo ($)</label>
                 <input type="number" id="efectivo" placeholder="Ej: 20000">
             </div>
+            
             <div class="grupo-input">
-                <label>Nº de Orden (Su Control)</label>
-                <input type="text" id="nro_orden_cliente" placeholder="Opcional">
+                
+                <div id="caja-orden-normal" style="width: 100%;">
+                    <label>Nº de Orden (Su Control)</label>
+                    <input type="text" id="nro_orden_cliente" placeholder="Opcional">
+                </div>
+
+                <div id="caja-ordenes-especiales" style="display: none; width: 100%; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="color: #C8102E; font-weight: bold;">Nº Orden Litros</label>
+                        <input type="text" id="nro_orden_litros_interna" placeholder="Ej: L-123">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="color: #C8102E; font-weight: bold;">Nº Orden Efectivo</label>
+                        <input type="text" id="nro_orden_efectivo_interna" placeholder="Ej: E-456">
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -93,7 +109,8 @@
         <th>Patente</th>
         <th>Litros</th>
         <th>Estado</th>
-        <th>Acciones</th> </tr>
+        <th>Acciones</th> 
+    </tr>
 </thead>
             <tbody id="cuerpo-tabla"></tbody>
         </table>
