@@ -4,7 +4,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
 let limiteEfectivoActual = 0;
-let usaFormatoEspecial = false; // NUEVO: Para saber si es el cliente raro
+let usaFormatoEspecial = false; 
 let idOrdenEditando = null; 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
-    // Traemos el nuevo campo 'formato_especial'
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
         .from('clientes').select('id, nombre, limite_efectivo, formato_especial')
         .eq('auth_user_id', user.id).single();
@@ -22,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     idClienteActual = clienteDatos.id;
     limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
-    usaFormatoEspecial = clienteDatos.formato_especial === true; // Activamos el modo especial si corresponde
+    usaFormatoEspecial = clienteDatos.formato_especial === true; 
 
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
@@ -53,9 +52,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
+        // AQUÍ ESTÁ LA MAGIA: NO mostrar AUDITADAS y LIMITAR a 20
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
-            .eq('cliente_id', idClienteActual).order('id', { ascending: false });
+            .eq('cliente_id', idClienteActual)
+            .neq('estado', 'AUDITADO') // Esconde las ya facturadas
+            .order('id', { ascending: false })
+            .limit(20); // Muestra solo las últimas 20
 
         if (error) return;
 
@@ -69,13 +72,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             let claseEstado = "pendiente";
             let accionesHtml = "";
 
-            if (orden.estado === 'DESPACHADO') {
+            // Por seguridad doble, si es DESPACHADO (o se cuela alguna AUDITADA), no deja editar
+            if (orden.estado === 'DESPACHADO' || orden.estado === 'AUDITADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
                 if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
                 accionesHtml = `<span style="color: #999; font-size: 0.8em;">Cerrada</span>`;
             } else {
-                // Modificado para mandar los datos nuevos a la función de editar
                 accionesHtml = `
                     <div class="celda-acciones">
                         <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}')">✏️</button>
@@ -93,7 +96,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
 
-            // Si es el cliente especial, mostramos los números dobles en la tabla
             let numeroMostrar = orden.nro_orden_cliente || '-';
             if (usaFormatoEspecial) {
                 numeroMostrar = `L:${orden.nro_orden_litros_interna || '-'} | E:${orden.nro_orden_efectivo_interna || '-'}`;
@@ -180,7 +182,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // LECTURA DE LOS NÚMEROS DE ORDEN (Lógica del fin de semana)
         let nroOrdenCliente = "";
         let nroOrdenLitros = null;
         let nroOrdenEfectivo = null;
@@ -189,10 +190,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             nroOrdenLitros = document.getElementById("nro_orden_litros_interna").value.trim();
             nroOrdenEfectivo = document.getElementById("nro_orden_efectivo_interna").value.trim();
             
-            // Si el cliente especial los deja vacíos, le preguntamos si está seguro (fin de semana)
             if (!nroOrdenLitros || !nroOrdenEfectivo) {
-                const confirmaVacio = confirm("⚠️ ATENCIÓN: No completaste los Números de Orden Interna (Litros/Efectivo).\n\n¿Deseás emitir la carga de todas formas para completarlos más adelante?");
-                if (!confirmaVacio) return; // Si cancela, frenamos todo
+                const confirmaVacio = confirm("⚠️ ATENCIÓN: No completaste los Números de Orden Interna.\n\n¿Deseás emitir la carga de todas formas para completarlos más adelante?");
+                if (!confirmaVacio) return; 
             }
         } else {
             nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             litros_pedidos: parseInt(litros),
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
-            nro_orden_litros_interna: nroOrdenLitros, // Se guarda vacío si confirmó la alerta
+            nro_orden_litros_interna: nroOrdenLitros, 
             nro_orden_efectivo_interna: nroOrdenEfectivo,
             estado: 'PENDIENTE'
         };
