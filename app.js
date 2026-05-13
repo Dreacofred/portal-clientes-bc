@@ -4,6 +4,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
 let limiteEfectivoActual = 0;
+let usaFormatoEspecial = false; // NUEVO: Para saber si es el cliente raro
 let idOrdenEditando = null; 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -12,17 +13,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
+    // Traemos el nuevo campo 'formato_especial'
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
-        .from('clientes').select('id, nombre, limite_efectivo')
+        .from('clientes').select('id, nombre, limite_efectivo, formato_especial')
         .eq('auth_user_id', user.id).single();
 
     if (errorCliente || !clienteDatos) { alert("Usuario no vinculado."); return; }
 
     idClienteActual = clienteDatos.id;
     limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
+    usaFormatoEspecial = clienteDatos.formato_especial === true; // Activamos el modo especial si corresponde
+
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
     document.getElementById("efectivo").placeholder = `Máx permitido: $${limiteEfectivoActual}`;
+
+    // --- LÓGICA DE MOSTRAR/OCULTAR CASILLEROS ESPECIALES ---
+    const cajaNormal = document.getElementById("caja-orden-normal");
+    const cajaEspecial = document.getElementById("caja-ordenes-especiales");
+
+    if (usaFormatoEspecial) {
+        if(cajaNormal) cajaNormal.style.display = "none";
+        if(cajaEspecial) cajaEspecial.style.display = "flex";
+    } else {
+        if(cajaNormal) cajaNormal.style.display = "block";
+        if(cajaEspecial) cajaEspecial.style.display = "none";
+    }
 
     const formulario = document.getElementById("formulario-orden");
     const btnEnviar = formulario.querySelector('button[type="submit"]');
@@ -59,9 +75,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
                 accionesHtml = `<span style="color: #999; font-size: 0.8em;">Cerrada</span>`;
             } else {
+                // Modificado para mandar los datos nuevos a la función de editar
                 accionesHtml = `
                     <div class="celda-acciones">
-                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id})">✏️</button>
+                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}')">✏️</button>
                         <button class="btn-accion delete" onclick="eliminarOrden(${orden.id})">🗑️</button>
                     </div>
                 `;
@@ -76,9 +93,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
 
+            // Si es el cliente especial, mostramos los números dobles en la tabla
+            let numeroMostrar = orden.nro_orden_cliente || '-';
+            if (usaFormatoEspecial) {
+                numeroMostrar = `L:${orden.nro_orden_litros_interna || '-'} | E:${orden.nro_orden_efectivo_interna || '-'}`;
+            }
+
             fila.innerHTML = `
                 <td>#${orden.id}</td>
-                <td><strong>${orden.nro_orden_cliente || '-'}</strong></td>
+                <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
                 <td>${orden.patente}</td>
@@ -90,12 +113,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // --- D. RECUPERAMOS LAS SUGERENCIAS (DATALISTS) ---
+    // --- D. RECUPERAMOS LAS SUGERENCIAS ---
     async function cargarSugerencias() {
         const { data, error } = await supabaseCliente
-            .from('ordenes_carga')
-            .select('patente, chofer')
-            .eq('cliente_id', idClienteActual);
+            .from('ordenes_carga').select('patente, chofer').eq('cliente_id', idClienteActual);
 
         if (error) return;
 
@@ -104,41 +125,43 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const listadoPatentes = document.getElementById("lista-patentes");
         const listadoChoferes = document.getElementById("lista-choferes");
-
-        listadoPatentes.innerHTML = "";
-        listadoChoferes.innerHTML = "";
+        listadoPatentes.innerHTML = ""; listadoChoferes.innerHTML = "";
 
         patentesUnicas.forEach(p => { if(p) listadoPatentes.innerHTML += `<option value="${p}">`; });
         choferesUnicos.forEach(c => { if(c) listadoChoferes.innerHTML += `<option value="${c}">`; });
     }
 
-    // --- E. FUNCIONES DE ACCIÓN (ELIMINAR Y EDITAR) ---
+    // --- E. FUNCIONES DE ACCIÓN ---
     window.eliminarOrden = async (id) => {
         if (!confirm("¿Seguro que querés anular esta orden?")) return;
         const { error } = await supabaseCliente.from('ordenes_carga').delete().eq('id', id);
-        if (error) alert("No se pudo eliminar.");
-        else cargarOrdenes();
+        if (error) alert("No se pudo eliminar."); else cargarOrdenes();
     };
 
-    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal) => {
+    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo) => {
         idOrdenEditando = id;
         document.getElementById("sucursal").value = sucursal || "";
         document.getElementById("patente").value = patente;
         document.getElementById("chofer").value = chofer;
         document.getElementById("litros").value = litros;
         document.getElementById("efectivo").value = efectivo;
-        document.getElementById("nro_orden_cliente").value = nroCliente;
+        
+        if (usaFormatoEspecial) {
+            document.getElementById("nro_orden_litros_interna").value = nroLitros;
+            document.getElementById("nro_orden_efectivo_interna").value = nroEfectivo;
+        } else {
+            document.getElementById("nro_orden_cliente").value = nroCliente;
+        }
         
         btnEnviar.textContent = "Actualizar Orden de Carga";
         btnEnviar.style.backgroundColor = "#28a745"; 
         window.scrollTo({ top: 0, behavior: 'smooth' }); 
     };
 
-    // Inicializamos tabla y sugerencias
     cargarOrdenes();
     cargarSugerencias();
 
-    // --- F. ENVÍO O ACTUALIZACIÓN (CON VALIDACIÓN ESTRICTA) ---
+    // --- F. ENVÍO O ACTUALIZACIÓN ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
         const sucursal = document.getElementById("sucursal").value;
@@ -146,9 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
-        const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
 
-        // Validación estricta de campos obligatorios
         if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !patente || !chofer || !litros) {
             alert("⚠️ Por favor, completá todos los campos obligatorios (Sucursal, Patente, Chofer y Litros).");
             return;
@@ -159,6 +180,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        // LECTURA DE LOS NÚMEROS DE ORDEN (Lógica del fin de semana)
+        let nroOrdenCliente = "";
+        let nroOrdenLitros = null;
+        let nroOrdenEfectivo = null;
+
+        if (usaFormatoEspecial) {
+            nroOrdenLitros = document.getElementById("nro_orden_litros_interna").value.trim();
+            nroOrdenEfectivo = document.getElementById("nro_orden_efectivo_interna").value.trim();
+            
+            // Si el cliente especial los deja vacíos, le preguntamos si está seguro (fin de semana)
+            if (!nroOrdenLitros || !nroOrdenEfectivo) {
+                const confirmaVacio = confirm("⚠️ ATENCIÓN: No completaste los Números de Orden Interna (Litros/Efectivo).\n\n¿Deseás emitir la carga de todas formas para completarlos más adelante?");
+                if (!confirmaVacio) return; // Si cancela, frenamos todo
+            }
+        } else {
+            nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
+        }
+
         const datos = {
             cliente_id: idClienteActual, 
             sucursal_carga_id: parseInt(sucursal), 
@@ -166,6 +205,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             litros_pedidos: parseInt(litros),
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
+            nro_orden_litros_interna: nroOrdenLitros, // Se guarda vacío si confirmó la alerta
+            nro_orden_efectivo_interna: nroOrdenEfectivo,
             estado: 'PENDIENTE'
         };
 
@@ -186,7 +227,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             formulario.reset(); 
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             cargarOrdenes();
-            cargarSugerencias(); // Refrescamos las sugerencias por si agregó patente nueva
+            cargarSugerencias(); 
         }
     });
 
