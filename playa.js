@@ -6,14 +6,21 @@ const NOMBRE_OPERADOR = localStorage.getItem('empleado_nombre') || "Operador";
 const ID_SUCURSAL_ACTUAL = localStorage.getItem('empleado_sucursal');
 const nombresSucursales = { 1: "RECONQUISTA", 2: "AVELLANEDA", 3: "FLORENCIA", 4: "RECREO" };
 
-// Referencias a los elementos de cámara (NUEVO)
+// Referencias a los elementos de cámara
 const inputFoto = document.getElementById('input-foto');
 const btnAbrirCamara = document.getElementById('btn-abrir-camara');
 const visualCamara = document.getElementById('caja-camara');
 const visualPrevia = document.getElementById('vista-previa');
 const imgPreview = document.getElementById('img-preview');
 const lblNombreArchivo = document.getElementById('nombre-archivo-capturado');
-let archivoImagenCapturado = null; // Guardará el archivo seleccionado
+let archivoImagenCapturado = null; 
+
+// Referencias a los elementos de Contingencia (NUEVO)
+const btnOmitirFoto = document.getElementById('btn-omitir-foto');
+const cajaContingencia = document.getElementById('caja-contingencia');
+const inputMotivo = document.getElementById('input-motivo');
+const btnFinalizarContingencia = document.getElementById('btn-finalizar-contingencia');
+const btnVolverCamara = document.getElementById('btn-volver-camara');
 
 document.addEventListener("DOMContentLoaded", () => {
     
@@ -31,18 +38,71 @@ document.addEventListener("DOMContentLoaded", () => {
     const contenedorOrdenes = document.getElementById("lista-ordenes");
     const modal = document.getElementById("modal-detalle");
     const btnCerrarModal = document.getElementById("btn-cerrar-modal");
+    const btnIniciar = document.getElementById("btn-iniciar-carga");
     let ordenActualizadaID = null;
 
-    // Configurar eventos de cámara al cargar la página (NUEVO)
+    // --- LÓGICA DE CONTINGENCIA (MOSTRAR/OCULTAR PANELES) ---
+    if (btnOmitirFoto) {
+        btnOmitirFoto.onclick = () => {
+            visualCamara.style.display = 'none';
+            btnIniciar.style.display = 'none'; // Ocultamos el botón verde original
+            cajaContingencia.style.display = 'block';
+        };
+    }
+
+    if (btnVolverCamara) {
+        btnVolverCamara.onclick = () => {
+            cajaContingencia.style.display = 'none';
+            visualCamara.style.display = 'block';
+            btnIniciar.style.display = 'flex'; // Volvemos a mostrar el botón verde
+        };
+    }
+
+    // --- GUARDAR SIN FOTO CON MOTIVO ---
+    if (btnFinalizarContingencia) {
+        btnFinalizarContingencia.onclick = async () => {
+            const motivo = inputMotivo.value.trim();
+            if (!motivo) {
+                alert("⚠️ Debes escribir brevemente por qué no pudiste sacar la foto (Ej: Lluvia, equipo fallando).");
+                inputMotivo.focus();
+                return;
+            }
+
+            btnFinalizarContingencia.disabled = true;
+            btnFinalizarContingencia.textContent = "GUARDANDO...";
+
+            // Actualizamos en BD indicando que está despachado, pero guardamos el motivo
+            const { error: errUpdate } = await supabaseCliente
+                .from('ordenes_carga')
+                .update({ 
+                    estado: 'DESPACHADO',
+                    fecha_despacho: new Date().toISOString(),
+                    motivo_sin_foto: motivo
+                })
+                .eq('id', ordenActualizadaID);
+
+            if (errUpdate) {
+                alert("Error al registrar en la base de datos. Intentá de nuevo.");
+                btnFinalizarContingencia.disabled = false;
+                btnFinalizarContingencia.textContent = "CERRAR ORDEN SIN FOTO";
+            } else {
+                modal.style.display = "none";
+                cargarOrdenesPendientes();
+                btnFinalizarContingencia.disabled = false;
+                btnFinalizarContingencia.textContent = "CERRAR ORDEN SIN FOTO";
+            }
+        };
+    }
+
+    // --- CONFIGURACIÓN DE LA CÁMARA NORMAL ---
     if(btnAbrirCamara && inputFoto) {
         btnAbrirCamara.onclick = () => {
-            inputFoto.click(); // Dispara el input file oculto
+            inputFoto.click(); 
         };
 
         inputFoto.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                // Verificar que sea una imagen
                 if (!file.type.startsWith('image/')) {
                     alert("Por favor, seleccione un archivo de imagen.");
                     return;
@@ -50,17 +110,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 archivoImagenCapturado = file;
                 
-                // Mostrar vista previa usando FileReader
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     imgPreview.src = event.target.result;
                     visualPrevia.style.display = 'block';
                     lblNombreArchivo.textContent = file.name;
                     
-                    // Si ya hay foto, cambiamos el texto del botón principal
                     btnIniciar.disabled = false; 
                     btnIniciar.innerHTML = '<span class="icono-check">✔</span> FINALIZAR Y SUBIR FOTO';
-                    btnIniciar.scrollIntoView({ behavior: 'smooth' }); // Scrollea hacia abajo
+                    btnIniciar.scrollIntoView({ behavior: 'smooth' }); 
                 };
                 reader.readAsDataURL(file);
             }
@@ -149,25 +207,26 @@ document.addEventListener("DOMContentLoaded", () => {
             cajaEfectivo.style.display = "none";
         }
 
-        // Reiniciar interfaz de cámara al abrir modal (NUEVO)
+        // Reiniciar TODOS los paneles visuales
         archivoImagenCapturado = null;
-        inputFoto.value = ''; // Limpiar input file
+        inputFoto.value = ''; 
         visualCamara.style.display = 'none';
         visualPrevia.style.display = 'none';
+        cajaContingencia.style.display = 'none'; // Ocultar contingencia
+        inputMotivo.value = ''; // Limpiar justificación anterior
+        btnIniciar.style.display = 'flex'; // Asegurar que el botón verde sea visible
         imgPreview.src = '#';
-        btnIniciar.innerHTML = '<span class="icono-check">✔</span> INICIAR CARGA'; // Texto base
+        btnIniciar.innerHTML = '<span class="icono-check">✔</span> INICIAR CARGA'; 
         btnIniciar.disabled = false;
 
         modal.style.display = "flex";
     }
 
-    const btnIniciar = document.getElementById("btn-iniciar-carga");
     if(btnIniciar) {
         btnIniciar.onclick = async () => {
             btnIniciar.disabled = true;
             btnIniciar.textContent = "VERIFICANDO...";
 
-            // 1. Buscamos la orden actualizada
             const { data: orden, error: errOrden } = await supabaseCliente
                 .from('ordenes_carga')
                 .select('*')
@@ -181,7 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 2. Buscamos datos del cliente
             const { data: cliente, error: errCliente } = await supabaseCliente
                 .from('clientes')
                 .select('nombre, requiere_foto_remito')
@@ -195,32 +253,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 3. EL CEREBRO DEL BOTÓN (Con cámara integrada - NUEVO)
             if (cliente.requiere_foto_remito === true) {
-                
-                // === RUTA A (LLEVA FOTO) ===
-                
-                // Si todavía no sacó la foto
+                // RUTA A: Lleva foto
                 if (!archivoImagenCapturado) {
-                    // Mostrar interfaz de cámara obligatoria
                     visualCamara.style.display = 'block';
-                    btnIniciar.disabled = true; // Deshabilitar hasta que saquen la foto
+                    btnIniciar.disabled = true; 
                     btnIniciar.textContent = "SAQUE LA FOTO PARA FINALIZAR";
-                    btnAbrirCamara.scrollIntoView({ behavior: 'smooth' }); // Scrollea para mostrar interfaz
-                    return; // Paramos acá
+                    btnAbrirCamara.scrollIntoView({ behavior: 'smooth' }); 
+                    return; 
                 }
 
-                // SI YA TENEMOS LA FOTO, PROCEDEMOS A SUBIRLA Y DESPACHAR
                 btnIniciar.disabled = true;
                 btnIniciar.textContent = "SUBIENDO FOTO...";
 
-                // A. Generar nombre de archivo único para que no se pisen
                 const extension = archivoImagenCapturado.name.split('.').pop() || 'jpg';
-                // Ej: AVE_Orden5_20260511_remito.jpg
                 const sucursalPrefix = nombresSucursales[ID_SUCURSAL_ACTUAL].substring(0, 3).toUpperCase();
                 const nombreArchivoUnique = `${sucursalPrefix}_Orden${orden.id}_${Date.now()}_remito.${extension}`;
 
-                // B. Subir archivo al Bucket 'remitos'
                 const { data: uploadData, error: errUpload } = await supabaseCliente.storage
                     .from('remitos')
                     .upload(nombreArchivoUnique, archivoImagenCapturado);
@@ -233,32 +282,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // C. Obtener la URL pública de la foto recién subida
                 const { data: publicUrlData } = supabaseCliente.storage
                     .from('remitos')
                     .getPublicUrl(nombreArchivoUnique);
 
                 const laUrlPublicaParaLaBD = publicUrlData.publicUrl;
 
-                // D. Actualizar la Orden en la base de datos marcando DESPACHADO e inyectando la URL
                 btnIniciar.textContent = "GUARDANDO DESPACHO...";
                 const { error: errUpdate } = await supabaseCliente
                     .from('ordenes_carga')
                     .update({ 
                         estado: 'DESPACHADO',
                         fecha_despacho: new Date().toISOString(),
-                        url_foto: laUrlPublicaParaLaBD // <-- AQUÍ GUARDAMOS LA FOTO
+                        url_foto: laUrlPublicaParaLaBD
                     })
                     .eq('id', orden.id);
 
                 if (errUpdate) {
                     console.error("Error DB update:", errUpdate);
                     alert("Foto subida, pero no pudimos cerrar la orden en la BD. Avise a administración.");
-                    // Restaurar botón para reintentar
                     btnIniciar.disabled = false;
                     btnIniciar.textContent = "FINALIZAR Y SUBIR FOTO";
                 } else {
-                    // ÉXITO TOTAL (Con foto)
                     modal.style.display = "none";
                     cargarOrdenesPendientes();
                     btnIniciar.disabled = false;
@@ -266,8 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
             } else {
-                
-                // === RUTA B (NO LLEVA FOTO) ===
+                // RUTA B: No lleva foto
                 const mensajeAlerta = `⚠️ Está a punto de despachar ${orden.litros_pedidos} Litros a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
                 if (!confirm(mensajeAlerta)) {
                     btnIniciar.disabled = false;
@@ -281,7 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     .update({ 
                         estado: 'DESPACHADO',
                         fecha_despacho: new Date().toISOString()
-                        // Aquí url_foto queda NULL porque no lleva
                     })
                     .eq('id', orden.id);
 
