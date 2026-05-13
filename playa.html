@@ -103,23 +103,29 @@
                 </div>
             </div>
 
-            <!-- NUEVO: Interfaz de cámara (Oculta por defecto) -->
             <div id="caja-camara" style="display: none; margin-top: 25px; text-align: center; border-top: 1px solid #333; padding-top: 20px;">
                 <label style="color: #fff; font-size: 16px; display: block; margin-bottom: 15px; font-weight: 600;">📸 Sacar foto del remito/factura (Obligatorio)</label>
                 
-                <!-- Input file oculto, acepta imágenes y gatilla cámara en móviles -->
                 <input type="file" id="input-foto" accept="image/*" capture="camera" style="display: none;">
                 
-                <!-- Botón visible que hace clic en el input file -->
                 <button id="btn-abrir-camara" class="btn-logout" style="padding: 10px 20px; font-size: 14px; text-transform: uppercase; border-color: #fff; color: #fff; margin-bottom: 15px;">
                     Abir Cámara / Seleccionar
                 </button>
                 
-                <!-- Vista previa de la foto tomada -->
                 <div id="vista-previa" style="margin-top: 15px; display: none;">
                     <img id="img-preview" src="#" alt="Vista previa" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
                     <div id="nombre-archivo-capturado" style="font-size: 11px; opacity: 0.6; margin-top: 5px; color: white;"></div>
                 </div>
+
+                <button id="btn-omitir-foto" style="background:none; border:none; color:#ff7675; text-decoration:underline; font-size:14px; cursor:pointer; margin-top:25px; padding:10px; width: 100%;">⚠️ Problemas técnicos: Omitir foto</button>
+            </div>
+
+            <div id="caja-contingencia" style="display: none; margin-top: 25px; text-align: center; border-top: 1px solid #ff7675; padding-top: 20px;">
+                <label style="color: #ff7675; font-size: 14px; display: block; margin-bottom: 10px; font-weight: bold;">JUSTIFICAR FALTA DE FOTO</label>
+                <input type="text" id="input-motivo" placeholder="Ej: Lluvia intensa, celular roto..." style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; margin-bottom: 15px; font-size: 16px; box-sizing: border-box;">
+                
+                <button id="btn-finalizar-contingencia" class="btn-verde" style="background-color: #d63031;">CERRAR ORDEN SIN FOTO</button>
+                <button id="btn-volver-camara" style="background:none; border:none; color:#aaa; text-decoration:underline; font-size:14px; cursor:pointer; margin-top:15px; padding:10px;">⬅ Volver a intentar con la cámara</button>
             </div>
 
             <button id="btn-iniciar-carga" class="btn-verde">
