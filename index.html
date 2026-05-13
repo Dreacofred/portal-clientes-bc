@@ -10,112 +10,118 @@
 <body>
 
     <header class="header-rojo">
-        <div class="header-izq">
-            <h1><i>BC</i> Combustibles</h1>
-            <span class="separador">|</span>
-            <h2>Portal de Clientes Pro</h2>
+        <div class="header-izq" style="display: flex; align-items: center;">
+            <img src="https://bjhykcdhafoqpfkpngvw.supabase.co/storage/v1/object/public/remitos/Logo.jpeg" 
+                 alt="BC Combustibles" 
+                 style="height: 45px; border-radius: 50%; margin-right: 12px; border: 2px solid white;">
+            
+            <div style="display: flex; align-items: center;">
+                <h1 style="margin: 0; font-size: 20px;">BC Combustibles</h1>
+                <span class="separador" style="margin: 0 10px;">|</span>
+                <h2 style="margin: 0; font-size: 16px; font-weight: 400; opacity: 0.9;">Portal de Clientes Pro</h2>
+            </div>
         </div>
         <div class="header-der">
             <div class="info-usuario">
                 <span class="bienvenido">Bienvenido,</span>
-                <span class="nombre-empresa">TRANSPORTE FRANCOVIG SH</span>
+                <span class="nombre-empresa">---</span>
             </div>
             <div class="icono-perfil">👤</div>
-            <div class="icono-salir">🚪</div>
+            <div class="icono-salir" style="cursor: pointer;">🚪</div>
         </div>
     </header>
 
     <main class="contenedor">
         
- <section class="tarjeta form-section">
-    <h3>Emitir Nueva Orden de Carga</h3>
-    
-    <form id="formulario-orden">
-        <div class="fila-form">
-            <div class="grupo-input ancho-doble">
-                <label>Entidad Pagadora (AUTOMÁTICO)</label>
-                <input type="text" id="nombre_cliente_display" readonly class="input-bloqueado">
-            </div>
-            <div class="grupo-input">
-                <label>Sucursal de Carga</label>
-                <select id="sucursal">
-                    <option value="">Seleccionar sucursal...</option>
-                    <option value="1">Reconquista</option>
-                    <option value="2">Avellaneda</option>
-                    <option value="3">Florencia</option>
-                    <option value="4">Recreo</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="fila-form">
-            <div class="grupo-input">
-                <label>Patente/Dominio del Camión</label>
-                <input list="lista-patentes" id="patente" placeholder="Elegir o escribir patente..." autocomplete="off">
-                <datalist id="lista-patentes"></datalist>
-            </div>
-            <div class="grupo-input">
-                <label>Chofer Autorizado</label>
-                <input list="lista-choferes" id="chofer" placeholder="Elegir o escribir chofer..." autocomplete="off">
-                <datalist id="lista-choferes"></datalist>
-            </div>
-        </div>
-
-        <div class="fila-form">
-            <div class="grupo-input">
-                <label>Litros</label>
-                <input type="number" id="litros" placeholder="Ej: 500">
-            </div>
-            <div class="grupo-input">
-                <label>Entrega Efectivo ($)</label>
-                <input type="number" id="efectivo" placeholder="Ej: 20000">
-            </div>
+        <section class="tarjeta form-section">
+            <h3>Emitir Nueva Orden de Carga</h3>
             
-            <div class="grupo-input">
-                
-                <div id="caja-orden-normal" style="width: 100%;">
-                    <label>Nº de Orden (Su Control)</label>
-                    <input type="text" id="nro_orden_cliente" placeholder="Opcional">
+            <form id="formulario-orden">
+                <div class="fila-form">
+                    <div class="grupo-input ancho-doble">
+                        <label>Entidad Pagadora (AUTOMÁTICO)</label>
+                        <input type="text" id="nombre_cliente_display" readonly class="input-bloqueado">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Sucursal de Carga</label>
+                        <select id="sucursal">
+                            <option value="">Seleccionar sucursal...</option>
+                            <option value="1">Reconquista</option>
+                            <option value="2">Avellaneda</option>
+                            <option value="3">Florencia</option>
+                            <option value="4">Recreo</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div id="caja-ordenes-especiales" style="display: none; width: 100%; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label style="color: #C8102E; font-weight: bold;">Nº Orden Litros</label>
-                        <input type="text" id="nro_orden_litros_interna" placeholder="Ej: L-123">
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Patente/Dominio del Camión</label>
+                        <input list="lista-patentes" id="patente" placeholder="Elegir o escribir patente..." autocomplete="off">
+                        <datalist id="lista-patentes"></datalist>
                     </div>
-                    <div style="flex: 1;">
-                        <label style="color: #C8102E; font-weight: bold;">Nº Orden Efectivo</label>
-                        <input type="text" id="nro_orden_efectivo_interna" placeholder="Ej: E-456">
+                    <div class="grupo-input">
+                        <label>Chofer Autorizado</label>
+                        <input list="lista-choferes" id="chofer" placeholder="Elegir o escribir chofer..." autocomplete="off">
+                        <datalist id="lista-choferes"></datalist>
                     </div>
                 </div>
 
+                <div class="fila-form">
+                    <div class="grupo-input">
+                        <label>Litros</label>
+                        <input type="number" id="litros" placeholder="Ej: 500">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Entrega Efectivo ($)</label>
+                        <input type="number" id="efectivo" placeholder="Ej: 20000">
+                    </div>
+                    
+                    <div class="grupo-input">
+                        
+                        <div id="caja-orden-normal" style="width: 100%;">
+                            <label>Nº de Orden (Su Control)</label>
+                            <input type="text" id="nro_orden_cliente" placeholder="Opcional">
+                        </div>
+
+                        <div id="caja-ordenes-especiales" style="display: none; width: 100%; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label style="color: #C8102E; font-weight: bold;">Nº Orden Litros</label>
+                                <input type="text" id="nro_orden_litros_interna" placeholder="Ej: L-123">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="color: #C8102E; font-weight: bold;">Nº Orden Efectivo</label>
+                                <input type="text" id="nro_orden_efectivo_interna" placeholder="Ej: E-456">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-rojo">Emitir Orden de Carga</button>
+            </form>
+        </section>
+
+        <section class="tarjeta tabla-section">
+            <h3>Mis Órdenes Recientes</h3>
+            <div style="overflow-x: auto;">
+                <table class="tabla-ordenes">
+                    <thead>
+                        <tr>
+                            <th>Nº BC</th>
+                            <th>Nº Cliente</th>
+                            <th>Fecha y Hora</th>
+                            <th>Sucursal</th>
+                            <th>Patente</th>
+                            <th>Litros</th>
+                            <th>Estado</th>
+                            <th>Acciones</th> 
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpo-tabla"></tbody>
+                </table>
             </div>
-        </div>
-
-        <button type="submit" class="btn-rojo">Emitir Orden de Carga</button>
-    </form>
-</section>
-
-<section class="tarjeta tabla-section">
-    <h3>Mis Órdenes Recientes</h3>
-    <div style="overflow-x: auto;">
-        <table class="tabla-ordenes">
-            <thead>
-    <tr>
-        <th>Nº BC</th>
-        <th>Nº Cliente</th>
-        <th>Fecha y Hora</th>
-        <th>Sucursal</th>
-        <th>Patente</th>
-        <th>Litros</th>
-        <th>Estado</th>
-        <th>Acciones</th> 
-    </tr>
-</thead>
-            <tbody id="cuerpo-tabla"></tbody>
-        </table>
-    </div>
-</section>
+        </section>
 
     </main>
     
