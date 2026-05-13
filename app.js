@@ -1,178 +1,164 @@
-// 1. Conectamos con tus credenciales
 const supabaseUrl = 'https://bjhykcdhafoqpfkpngvw.supabase.co';
 const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
-let limiteEfectivoActual = 0; 
+let limiteEfectivoActual = 0;
+let idOrdenEditando = null; // Para saber si estamos creando o editando
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-    // --- A. SEGURIDAD: Verificar sesión activa ---
+    // --- A. SEGURIDAD Y DATOS ---
     const { data: { user } } = await supabaseCliente.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
 
-    if (!user) {
-        window.location.href = "login.html";
-        return;
-    }
-
-    // --- B. DATOS DEL CLIENTE ---
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
-        .from('clientes')
-        .select('id, nombre, limite_efectivo') 
-        .eq('auth_user_id', user.id)
-        .single();
+        .from('clientes').select('id, nombre, limite_efectivo')
+        .eq('auth_user_id', user.id).single();
 
-    if (errorCliente || !clienteDatos) {
-        alert("Tu usuario no está vinculado a BC Combustibles.");
-        return;
-    }
+    if (errorCliente || !clienteDatos) { alert("Usuario no vinculado."); return; }
 
     idClienteActual = clienteDatos.id;
-    // Forzamos a que el límite sea leído como un número matemático
-    limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0; 
-    
+    limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
-
-    // PUNTO 1: Cambiar el placeholder (texto gris) para mostrar el límite real
-    const inputEfectivo = document.getElementById("efectivo");
-    if (inputEfectivo) {
-        inputEfectivo.placeholder = `Máx permitido: $${limiteEfectivoActual}`;
-    }
+    document.getElementById("efectivo").placeholder = `Máx permitido: $${limiteEfectivoActual}`;
 
     const formulario = document.getElementById("formulario-orden");
+    const btnEnviar = formulario.querySelector('button[type="submit"]');
 
-    // --- C. TABLA DE ÓRDENES ---
+    // --- B. BLOQUEO DE TECLA ENTER (PUNTO 1) ---
+    formulario.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target.nodeName === "INPUT") {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // --- C. TABLA DE ÓRDENES CON ACCIONES (PUNTO 2) ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
-            .from('ordenes_carga')
-            .select('*')
-            .eq('cliente_id', idClienteActual) 
-            .order('id', { ascending: false });
+            .from('ordenes_carga').select('*')
+            .eq('cliente_id', idClienteActual).order('id', { ascending: false });
 
         if (error) return;
 
         const cuerpoTabla = document.getElementById("cuerpo-tabla");
         cuerpoTabla.innerHTML = ""; 
-
         const mapaSucursales = { 1: 'Reconquista', 2: 'Avellaneda', 3: 'Florencia', 4: 'Recreo' };
 
         data.forEach(orden => {
             const fila = document.createElement("tr");
             let fechaRaw = orden.fecha_creacion;
             let claseEstado = "pendiente";
-            
+            let accionesHtml = ""; // Aquí pondremos los botones si está pendiente
+
             if (orden.estado === 'DESPACHADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
                 if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
+                accionesHtml = `<span style="color: #999; font-size: 0.8em;">Cerrada</span>`;
+            } else {
+                // Si está pendiente, habilitamos botones de editar y borrar
+                accionesHtml = `
+                    <div class="celda-acciones">
+                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id})">✏️</button>
+                        <button class="btn-accion delete" onclick="eliminarOrden(${orden.id})">🗑️</button>
+                    </div>
+                `;
             }
 
             let fechaFormateada = "Sin fecha";
             if (fechaRaw) {
-                const fechaLimpia = fechaRaw.replace(" ", "T");
-                const fechaObj = new Date(fechaLimpia);
+                const fechaObj = new Date(fechaRaw.replace(" ", "T"));
                 if (!isNaN(fechaObj)) {
                     fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
                                      fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
                 }
             }
 
-            const nombreSucursal = mapaSucursales[orden.sucursal_carga_id] || 'Sin asignar';
-
             fila.innerHTML = `
                 <td>#${orden.id}</td>
                 <td><strong>${orden.nro_orden_cliente || '-'}</strong></td>
                 <td>${fechaFormateada}</td>
-                <td><strong>${nombreSucursal}</strong></td>
+                <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
                 <td>${orden.patente}</td>
                 <td>${orden.litros_pedidos} L</td>
                 <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
+                <td>${accionesHtml}</td>
             `;
             cuerpoTabla.appendChild(fila);
         });
     }
 
-    // --- D. SUGERENCIAS (Datalists) ---
-    async function cargarSugerencias() {
-        const { data, error } = await supabaseCliente
-            .from('ordenes_carga')
-            .select('patente, chofer')
-            .eq('cliente_id', idClienteActual);
+    // --- D. FUNCIONES DE ACCIÓN (ELIMINAR Y EDITAR) ---
+    window.eliminarOrden = async (id) => {
+        if (!confirm("¿Seguro que querés anular esta orden?")) return;
+        const { error } = await supabaseCliente.from('ordenes_carga').delete().eq('id', id);
+        if (error) alert("No se pudo eliminar.");
+        else cargarOrdenes();
+    };
 
-        if (error) return;
+    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal) => {
+        idOrdenEditando = id;
+        document.getElementById("sucursal").value = sucursal;
+        document.getElementById("patente").value = patente;
+        document.getElementById("chofer").value = chofer;
+        document.getElementById("litros").value = litros;
+        document.getElementById("efectivo").value = efectivo;
+        document.getElementById("nro_orden_cliente").value = nroCliente;
+        
+        btnEnviar.textContent = "Actualizar Orden de Carga";
+        btnEnviar.style.backgroundColor = "#28a745"; // Color verde mientras edita
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube al formulario
+    };
 
-        const patentesUnicas = [...new Set(data.map(item => item.patente))];
-        const choferesUnicos = [...new Set(data.map(item => item.chofer))];
-
-        const listadoPatentes = document.getElementById("lista-patentes");
-        const listadoChoferes = document.getElementById("lista-choferes");
-
-        listadoPatentes.innerHTML = "";
-        listadoChoferes.innerHTML = "";
-
-        patentesUnicas.forEach(p => { if(p) listadoPatentes.innerHTML += `<option value="${p}">`; });
-        choferesUnicos.forEach(c => { if(c) listadoChoferes.innerHTML += `<option value="${c}">`; });
-    }
-
-    cargarOrdenes();
-    cargarSugerencias();
-
-    // --- E. ENVÍO DEL FORMULARIO ---
+    // --- E. ENVÍO O ACTUALIZACIÓN ---
     formulario.addEventListener("submit", async (e) => {
         e.preventDefault();
         const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
+        const efectivo = parseInt(document.getElementById("efectivo").value || "0");
         const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
-        
-        const efectivoStr = document.getElementById("efectivo").value || "0";
-        const efectivo = parseInt(efectivoStr);
 
-        // --- VALIDACIÓN DE EFECTIVO (PUNTO 2) ---
         if (efectivo > limiteEfectivoActual) {
-            alert(`⚠️ OPERACIÓN DENEGADA\nEl monto solicitado ($${efectivo}) supera tu límite autorizado ($${limiteEfectivoActual}).`);
-            return; // El "return" detiene todo, no deja guardar en la base de datos
-        }
-
-        if (!sucursal || !patente || !chofer || !litros) {
-            alert("Por favor, completá todos los campos obligatorios.");
+            alert(`Monto solicitado ($${efectivo}) supera el límite ($${limiteEfectivoActual}).`);
             return;
         }
 
-        const { data, error } = await supabaseCliente
-            .from('ordenes_carga')
-            .insert([{
-                cliente_id: idClienteActual, 
-                sucursal_carga_id: parseInt(sucursal), 
-                patente: patente, 
-                chofer: chofer,
-                litros_pedidos: parseInt(litros),
-                efectivo_pedido: efectivo,
-                nro_orden_cliente: nroOrdenCliente,
-                estado: 'PENDIENTE'
-            }]);
+        const datos = {
+            cliente_id: idClienteActual, 
+            sucursal_carga_id: parseInt(sucursal), 
+            patente, chofer,
+            litros_pedidos: parseInt(litros),
+            efectivo_pedido: efectivo,
+            nro_orden_cliente: nroOrdenCliente,
+            estado: 'PENDIENTE'
+        };
 
-        if (error) {
-            console.error("Error al guardar:", error);
-            alert("Error al guardar la orden.");
+        let resultado;
+        if (idOrdenEditando) {
+            // Si estábamos editando, hacemos un UPDATE
+            resultado = await supabaseCliente.from('ordenes_carga').update(datos).eq('id', idOrdenEditando);
         } else {
-            alert("¡GOLAZO! Orden cargada correctamente.");
+            // Si no, hacemos un INSERT normal
+            resultado = await supabaseCliente.from('ordenes_carga').insert([datos]);
+        }
+
+        if (resultado.error) {
+            alert("Error al procesar la operación.");
+        } else {
+            alert(idOrdenEditando ? "¡Orden actualizada!" : "¡Orden emitida!");
+            idOrdenEditando = null;
+            btnEnviar.textContent = "Emitir Orden de Carga";
+            btnEnviar.style.backgroundColor = ""; // Vuelve al rojo original
             formulario.reset(); 
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             cargarOrdenes();
-            cargarSugerencias();
         }
     });
 
-    // --- F. LOGOUT ---
-    const btnSalir = document.querySelector('.icono-salir');
-    if (btnSalir) {
-        btnSalir.addEventListener('click', async () => {
-            await supabaseCliente.auth.signOut();
-            window.location.href = "login.html";
-        });
-    }
+    cargarOrdenes();
 });
