@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const formulario = document.getElementById("formulario-orden");
 
-// --- C. TABLA DE ÓRDENES (ACTUALIZADA) ---
+    // --- C. TABLA DE ÓRDENES (ACTUALIZADA) ---
     async function cargarOrdenes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
@@ -77,8 +77,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const nombreSucursal = mapaSucursales[orden.sucursal_carga_id] || 'Sin asignar';
 
+            // NUEVO: Se agrega la columna para mostrar el Número de Orden del Cliente
             fila.innerHTML = `
                 <td>#${orden.id}</td>
+                <td><strong>${orden.nro_orden_cliente || '-'}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${nombreSucursal}</strong></td>
                 <td>${orden.patente}</td>
@@ -122,6 +124,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const litros = document.getElementById("litros").value;
         const efectivo = document.getElementById("efectivo").value || 0; 
+        
+        // NUEVO: Capturamos el texto que escribió el cliente en su número de control
+        const nroOrdenCliente = document.getElementById("nro_orden_cliente").value;
 
         if (!sucursal || !patente || !chofer || !litros) {
             alert("Por favor, completá todos los campos obligatorios.");
@@ -137,6 +142,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 chofer: chofer,
                 litros_pedidos: parseInt(litros),
                 efectivo_pedido: parseInt(efectivo),
+                nro_orden_cliente: nroOrdenCliente, // NUEVO: Lo inyectamos acá para que vaya a Supabase
                 estado: 'PENDIENTE'
             }]);
 
