@@ -106,8 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
-                <td>${orden.patente || '-'}</td>
-                <td>${orden.litros_pedidos} L</td>
+                <td>${orden.chofer || 'Sin chofer'}</td> <td>${orden.litros_pedidos} L</td>
                 <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
                 <td>${accionesHtml}</td>
             `;
