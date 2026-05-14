@@ -209,3 +209,66 @@ input:focus, select:focus {
 
 .btn-accion.edit:hover { background-color: #e2f3e5; }
 .btn-accion.delete:hover { background-color: #fdeaea; }
+
+/* =========================================
+   ADAPTACIÓN PARA CELULARES (RESPONSIVE)
+========================================= */
+@media (max-width: 768px) {
+    /* 1. Ajuste de la cabecera roja */
+    .header-rojo {
+        flex-direction: column;
+        padding: 15px;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header-izq {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .separador {
+        display: none; /* Ocultamos la barrita vertical en celulares para ahorrar espacio */
+    }
+
+    .header-der {
+        justify-content: center;
+    }
+    
+    .info-usuario {
+        text-align: center;
+    }
+
+    /* 2. Ajuste del contenedor principal */
+    .contenedor {
+        margin: 20px auto;
+        padding: 0 10px;
+    }
+
+    .tarjeta {
+        padding: 20px 15px;
+    }
+
+    /* 3. Ajuste de los formularios (que se apilen en vez de estar al lado) */
+    .fila-form {
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .grupo-input, .ancho-doble {
+        width: 100%; /* Forzamos a que ocupen todo el ancho */
+    }
+
+    /* 4. Ajuste de la tabla (permite hacer scroll horizontal si no entra) */
+    .contenedor-tabla {
+        overflow-x: auto;
+        display: block;
+        width: 100%;
+        -webkit-overflow-scrolling: touch; /* Suaviza el scroll en iPhones */
+    }
+    
+    .tabla-ordenes {
+        min-width: 600px; /* Obligamos a la tabla a mantener su ancho para que no se deforme el texto */
+    }
+}
