@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             } else {
                 accionesHtml = `
                     <div class="celda-acciones">
-                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}')">✏️</button>
+                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}')">✏️</button>
                         <button class="btn-accion delete" onclick="eliminarOrden(${orden.id})">🗑️</button>
                     </div>
                 `;
@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const fechaObj = new Date(fechaRaw.replace(" ", "T"));
                 if (!isNaN(fechaObj)) {
                     fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
-                                     fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+                                      fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
                 }
             }
 
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
-                <td>${orden.patente}</td>
+                <td>${orden.patente || '-'}</td>
                 <td>${orden.litros_pedidos} L</td>
                 <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
                 <td>${accionesHtml}</td>
@@ -122,8 +122,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (error) return;
 
-        const patentesUnicas = [...new Set(data.map(item => item.patente))];
-        const choferesUnicos = [...new Set(data.map(item => item.chofer))];
+        const patentesUnicas = [...new Set(data.map(item => item.patente))].filter(Boolean); // filtra nulos y vacios
+        const choferesUnicos = [...new Set(data.map(item => item.chofer))].filter(Boolean);
 
         const listadoPatentes = document.getElementById("lista-patentes");
         const listadoChoferes = document.getElementById("lista-choferes");
@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo) => {
         idOrdenEditando = id;
         document.getElementById("sucursal").value = sucursal || "";
-        document.getElementById("patente").value = patente;
+        document.getElementById("patente").value = patente || "";
         document.getElementById("chofer").value = chofer;
         document.getElementById("litros").value = litros;
         document.getElementById("efectivo").value = efectivo;
@@ -172,8 +172,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const litros = document.getElementById("litros").value;
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
 
-        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !patente || !chofer || !litros) {
-            alert("⚠️ Por favor, completá todos los campos obligatorios (Sucursal, Patente, Chofer y Litros).");
+        // CAMBIO AQUÍ: Se quitó !patente de la condición de validación obligatoria
+        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer || !litros) {
+            alert("⚠️ Por favor, completá los campos obligatorios (Sucursal, Chofer y Litros).");
             return;
         }
 
@@ -201,7 +202,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const datos = {
             cliente_id: idClienteActual, 
             sucursal_carga_id: parseInt(sucursal), 
-            patente, chofer,
+            patente: patente || null, // Se envía null si está vacío para evitar strings vacíos
+            chofer,
             litros_pedidos: parseInt(litros),
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
@@ -219,6 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (resultado.error) {
             alert("Error al procesar la operación.");
+            console.error(resultado.error);
         } else {
             alert(idOrdenEditando ? "¡Orden actualizada!" : "¡Orden emitida!");
             idOrdenEditando = null;
