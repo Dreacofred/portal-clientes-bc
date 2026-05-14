@@ -77,19 +77,18 @@
                         <input type="number" id="efectivo" placeholder="Ej: 20000">
                     </div>
                     
-                    <div class="grupo-input">
-                        
+                    <div class="grupo-input" style="display: flex; flex-direction: column; width: 100%;">
                         <div id="caja-orden-normal" style="width: 100%;">
                             <label>Nº de Orden (Su Control)</label>
                             <input type="text" id="nro_orden_cliente" placeholder="Opcional">
                         </div>
 
-                        <div id="caja-ordenes-especiales" style="display: none; width: 100%; gap: 10px;">
-                            <div style="flex: 1;">
+                        <div id="caja-ordenes-especiales" style="display: none; width: 100%; flex-wrap: wrap; gap: 10px;">
+                            <div style="flex: 1; min-width: 140px;">
                                 <label style="color: #C8102E; font-weight: bold;">Nº Orden Litros</label>
                                 <input type="text" id="nro_orden_litros_interna" placeholder="Ej: L-123">
                             </div>
-                            <div style="flex: 1;">
+                            <div style="flex: 1; min-width: 140px;">
                                 <label style="color: #C8102E; font-weight: bold;">Nº Orden Efectivo</label>
                                 <input type="text" id="nro_orden_efectivo_interna" placeholder="Ej: E-456">
                             </div>
@@ -104,8 +103,8 @@
 
         <section class="tarjeta tabla-section">
             <h3>Mis Órdenes Recientes</h3>
-            <div style="overflow-x: auto;">
-                <table class="tabla-ordenes">
+            <div class="contenedor-tabla">
+                <table class="tabla-ordenes" id="tablaOrdenes">
                     <thead>
                         <tr>
                             <th>Nº BC</th>
