@@ -151,14 +151,26 @@ document.addEventListener("DOMContentLoaded", () => {
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
             
-            tarjeta.innerHTML = `
-                <div class="tarjeta-bloque-superior">
+            // --- AQUI MODIFICAMOS PARA MOSTRAR U OCULTAR LA PATENTE SEGUN EXISTA O NO ---
+            let htmlPatente = '';
+            if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
+                htmlPatente = `
                     <div class="visual-patente">
                         <div class="placa-azul">
                             <span class="placa-azul-txt">AR</span><span class="placa-azul-txt">Mercosur</span>
                         </div>
                         <div class="placa-blanca">${patenteFormateada}</div>
-                    </div>
+                    </div>`;
+            } else {
+                htmlPatente = `
+                    <div style="text-align: center; color: #888; font-style: italic; margin-bottom: 10px; font-size: 0.9em; width: 100%;">
+                        (Sin Patente Declarada)
+                    </div>`;
+            }
+
+            tarjeta.innerHTML = `
+                <div class="tarjeta-bloque-superior">
+                    ${htmlPatente}
                     <div class="info-orden">
                         <div class="chofer-txt">👤 ${nombreChofer}</div>
                         <div class="empresa-txt">(${nombreEmpresa})</div>
@@ -183,7 +195,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function abrirDetalleOrden(orden, patenteFormateada, nombreEmpresa) {
         ordenActualizadaID = orden.id; 
-        document.getElementById("detalle-patente").textContent = patenteFormateada;
+        
+        // Tambien mostramos "(Sin Patente)" en el detalle que se abre si aplica
+        let txtPatenteDetalle = (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') ? patenteFormateada : "(Sin Patente)";
+        document.getElementById("detalle-patente").textContent = txtPatenteDetalle;
         document.getElementById("detalle-empresa").textContent = nombreEmpresa;
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         document.getElementById("detalle-litros").textContent = orden.litros_pedidos + " L";
