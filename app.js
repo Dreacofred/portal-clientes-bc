@@ -52,13 +52,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
-        // AQUÍ ESTÁ LA MAGIA: NO mostrar AUDITADAS y LIMITAR a 20
+        // ACTUALIZADO: Ya NO filtramos AUDITADO para que puedan ver el historial
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
             .eq('cliente_id', idClienteActual)
-            .neq('estado', 'AUDITADO') // Esconde las ya facturadas
             .order('id', { ascending: false })
-            .limit(20); // Muestra solo las últimas 20
+            .limit(20); 
 
         if (error) return;
 
@@ -72,12 +71,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             let claseEstado = "pendiente";
             let accionesHtml = "";
 
-            // Por seguridad doble, si es DESPACHADO (o se cuela alguna AUDITADA), no deja editar
+            // ACTUALIZADO: Lógica para mostrar botón de factura si está despachada o auditada
             if (orden.estado === 'DESPACHADO' || orden.estado === 'AUDITADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
                 if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
-                accionesHtml = `<span style="color: #999; font-size: 0.8em;">Cerrada</span>`;
+                
+                let btnFoto = "";
+                if (orden.url_foto) {
+                    // Botón azul para abrir la foto en una pestaña nueva
+                    btnFoto = `<button class="btn-accion" style="background-color: #007bff; font-size: 1.1em; color: white; border-radius: 4px; padding: 2px 8px; border: none; cursor: pointer;" onclick="window.open('${orden.url_foto}', '_blank')" title="Ver Foto del Remito">🧾 Ver Remito</button>`;
+                } else {
+                    btnFoto = `<span style="font-size: 0.8em; color: #999;">Sin Foto</span>`;
+                }
+
+                accionesHtml = `
+                    <div class="celda-acciones" style="justify-content: flex-start; gap: 10px;">
+                        ${btnFoto}
+                    </div>
+                `;
             } else {
                 accionesHtml = `
                     <div class="celda-acciones">
@@ -106,7 +118,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
-                <td>${orden.chofer || 'Sin chofer'}</td> <td>${orden.litros_pedidos} L</td>
+                <td>${orden.chofer || 'Sin chofer'}</td> 
+                <td>${orden.litros_pedidos} L</td>
                 <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
                 <td>${accionesHtml}</td>
             `;
@@ -121,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (error) return;
 
-        const patentesUnicas = [...new Set(data.map(item => item.patente))].filter(Boolean); // filtra nulos y vacios
+        const patentesUnicas = [...new Set(data.map(item => item.patente))].filter(Boolean); 
         const choferesUnicos = [...new Set(data.map(item => item.chofer))].filter(Boolean);
 
         const listadoPatentes = document.getElementById("lista-patentes");
@@ -171,7 +184,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const litros = document.getElementById("litros").value;
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
 
-        // CAMBIO AQUÍ: Se quitó !patente de la condición de validación obligatoria
         if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer || !litros) {
             alert("⚠️ Por favor, completá los campos obligatorios (Sucursal, Chofer y Litros).");
             return;
@@ -201,7 +213,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const datos = {
             cliente_id: idClienteActual, 
             sucursal_carga_id: parseInt(sucursal), 
-            patente: patente || null, // Se envía null si está vacío para evitar strings vacíos
+            patente: patente || null, 
             chofer,
             litros_pedidos: parseInt(litros),
             efectivo_pedido: efectivo,
