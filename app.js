@@ -5,6 +5,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 let idClienteActual = null;
 let limiteEfectivoActual = 0;
 let usaFormatoEspecial = false; 
+let eligeCuitFacturar = false; // NUEVO: Bandera para saber si el cliente usa estos campos
 let idOrdenEditando = null; 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -13,8 +14,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
+    // NUEVO: Agregamos elige_cuit_facturar en la consulta
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
-        .from('clientes').select('id, nombre, limite_efectivo, formato_especial')
+        .from('clientes').select('id, nombre, limite_efectivo, formato_especial, elige_cuit_facturar')
         .eq('auth_user_id', user.id).single();
 
     if (errorCliente || !clienteDatos) { alert("Usuario no vinculado."); return; }
@@ -22,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     idClienteActual = clienteDatos.id;
     limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
     usaFormatoEspecial = clienteDatos.formato_especial === true; 
+    eligeCuitFacturar = clienteDatos.elige_cuit_facturar === true; // Guardamos la variable
 
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
@@ -39,6 +42,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         if(cajaEspecial) cajaEspecial.style.display = "none";
     }
 
+    // --- NUEVO: FUNCIÓN PARA MOSTRAR/OCULTAR CAMPOS DE FACTURACIÓN ---
+    function controlarCamposFacturacion() {
+        const cajaFacturacion = document.getElementById("caja-facturacion-especial");
+        if (eligeCuitFacturar) {
+            if (cajaFacturacion) cajaFacturacion.style.display = "block";
+        } else {
+            if (cajaFacturacion) cajaFacturacion.style.display = "none";
+        }
+    }
+    controlarCamposFacturacion();
+
     const formulario = document.getElementById("formulario-orden");
     const btnEnviar = formulario.querySelector('button[type="submit"]');
 
@@ -52,7 +66,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
-        // ACTUALIZADO: Ya NO filtramos AUDITADO para que puedan ver el historial
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
             .eq('cliente_id', idClienteActual)
@@ -71,7 +84,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             let claseEstado = "pendiente";
             let accionesHtml = "";
 
-            // ACTUALIZADO: Lógica para mostrar botón de factura si está despachada o auditada
             if (orden.estado === 'DESPACHADO' || orden.estado === 'AUDITADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
@@ -79,7 +91,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 
                 let btnFoto = "";
                 if (orden.url_foto) {
-                    // Botón azul para abrir la foto en una pestaña nueva
                     btnFoto = `<button class="btn-accion" style="background-color: #007bff; font-size: 1.1em; color: white; border-radius: 4px; padding: 2px 8px; border: none; cursor: pointer;" onclick="window.open('${orden.url_foto}', '_blank')" title="Ver Foto del Remito">🧾 Ver Remito</button>`;
                 } else {
                     btnFoto = `<span style="font-size: 0.8em; color: #999;">Sin Foto</span>`;
@@ -91,9 +102,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 `;
             } else {
+                // NUEVO: Le pasamos los datos de CUIT y Razón social al botón editar
                 accionesHtml = `
                     <div class="celda-acciones">
-                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}')">✏️</button>
+                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}', '${orden.factura_cuit || ''}', '${orden.factura_razon_social || ''}')">✏️</button>
                         <button class="btn-accion delete" onclick="eliminarOrden(${orden.id})">🗑️</button>
                     </div>
                 `;
@@ -152,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (error) alert("No se pudo eliminar."); else cargarOrdenes();
     };
 
-    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo) => {
+    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo, fcCuit, fcRs) => {
         idOrdenEditando = id;
         document.getElementById("sucursal").value = sucursal || "";
         document.getElementById("patente").value = patente || "";
@@ -165,6 +177,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("nro_orden_efectivo_interna").value = nroEfectivo;
         } else {
             document.getElementById("nro_orden_cliente").value = nroCliente;
+        }
+
+        // NUEVO: Rellenamos los campos de facturación si los tiene habilitados
+        if (eligeCuitFacturar) {
+            document.getElementById("factura_cuit").value = (fcCuit && fcCuit !== 'null') ? fcCuit : "";
+            document.getElementById("factura_razon_social").value = (fcRs && fcRs !== 'null') ? fcRs : "";
         }
         
         btnEnviar.textContent = "Actualizar Orden de Carga";
@@ -210,6 +228,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
         }
 
+        // --- NUEVO: VALIDAMOS Y GUARDAMOS LOS DATOS DE FACTURACIÓN ---
+        let campoCuitVal = null;
+        let campoRsVal = null;
+
+        if (eligeCuitFacturar) {
+            const txtCuit = document.getElementById("factura_cuit").value.trim();
+            const txtRs = document.getElementById("factura_razon_social").value.trim();
+
+            if (!txtCuit || !txtRs) {
+                alert("⚠️ ATENCIÓN: Al tener habilitada la facturación especial, el CUIT y la Razón Social a facturar son campos obligatorios.");
+                return;
+            }
+            campoCuitVal = parseInt(txtCuit); // int8 en Supabase
+            campoRsVal = txtRs.toUpperCase(); // text en Supabase
+        }
+
         const datos = {
             cliente_id: idClienteActual, 
             sucursal_carga_id: parseInt(sucursal), 
@@ -220,6 +254,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             nro_orden_cliente: nroOrdenCliente,
             nro_orden_litros_interna: nroOrdenLitros, 
             nro_orden_efectivo_interna: nroOrdenEfectivo,
+            factura_cuit: campoCuitVal,              // Se guarda en base de datos
+            factura_razon_social: campoRsVal,        // Se guarda en base de datos
             estado: 'PENDIENTE'
         };
 
