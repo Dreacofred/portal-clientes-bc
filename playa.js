@@ -161,6 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
             
+            // MODIFICACIÓN 1: Estilo sutil para cuando no hay patente
             let htmlPatente = '';
             if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
                 htmlPatente = `
@@ -172,12 +173,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>`;
             } else {
                 htmlPatente = `
-                    <div style="text-align: center; color: #888; font-style: italic; margin-bottom: 10px; font-size: 0.9em; width: 100%;">
-                        (Sin Patente Declarada)
+                    <div style="color: #A0A0A0; font-size: 0.75em; font-style: italic; display: flex; align-items: center; justify-content: center; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; border: 1px dashed #dcdcdc; margin-bottom: 10px;">
+                        Sin patente
                     </div>`;
             }
 
-            // AJUSTE: Agregamos el flex-direction column y el div de fecha abajo de los litros
+            // MODIFICACIÓN 2: Agregamos la fecha en la tarjeta
             tarjeta.innerHTML = `
                 <div class="tarjeta-bloque-superior">
                     ${htmlPatente}
@@ -211,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function abrirDetalleOrden(orden, patenteFormateada, nombreEmpresa) {
         ordenActualizadaID = orden.id; 
         
-        // AJUSTE: Modificamos visualmente el elemento del detalle si viene vacío para que sea más discreto
         const elPatenteDetalle = document.getElementById("detalle-patente");
         if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
             elPatenteDetalle.textContent = patenteFormateada;
@@ -229,7 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         document.getElementById("detalle-litros").textContent = orden.litros_pedidos + " L";
 
-        // LÓGICA DE EFECTIVO EDITABLE
         const cajaEfectivo = document.getElementById("caja-efectivo");
         const inputEfectivoEntregado = document.getElementById("input-efectivo-entregado");
         
