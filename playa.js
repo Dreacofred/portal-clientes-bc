@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     estado: 'DESPACHADO',
                     fecha_despacho: new Date().toISOString(),
                     motivo_sin_foto: motivo,
-                    efectivo_entregado: efectivoReal // NUEVO DATO
+                    efectivo_entregado: efectivoReal 
                 })
                 .eq('id', ordenActualizadaID);
 
@@ -148,10 +148,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
             const nombreChofer = orden.chofer ? orden.chofer : "SIN ESPECIFICAR"; 
 
+            // Formateamos la fecha de creación de la orden
+            let fechaFormateada = "Sin fecha";
+            if (orden.fecha_creacion) {
+                const fechaObj = new Date(orden.fecha_creacion.replace(" ", "T"));
+                if (!isNaN(fechaObj)) {
+                    fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
+                                      fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+                }
+            }
+
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
             
-            // --- AQUI MODIFICAMOS PARA MOSTRAR U OCULTAR LA PATENTE SEGUN EXISTA O NO ---
             let htmlPatente = '';
             if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
                 htmlPatente = `
@@ -168,6 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>`;
             }
 
+            // AJUSTE: Agregamos el flex-direction column y el div de fecha abajo de los litros
             tarjeta.innerHTML = `
                 <div class="tarjeta-bloque-superior">
                     ${htmlPatente}
@@ -177,11 +187,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
                 
-                <div class="tarjeta-bloque-inferior">
-                    <div class="txt-litros">${orden.litros_pedidos} L</div>
-                    <div class="tarjeta-badges">
-                        <span class="status-tag">${orden.estado}</span>
-                        ${iconoEfectivo}
+                <div class="tarjeta-bloque-inferior" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div class="txt-litros">${orden.litros_pedidos} L</div>
+                        <div class="tarjeta-badges">
+                            <span class="status-tag">${orden.estado}</span>
+                            ${iconoEfectivo}
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75em; color: #8a8a8a; text-align: right; font-style: italic;">
+                        Emitida: ${fechaFormateada}
                     </div>
                 </div>
             `;
@@ -196,9 +211,20 @@ document.addEventListener("DOMContentLoaded", () => {
     function abrirDetalleOrden(orden, patenteFormateada, nombreEmpresa) {
         ordenActualizadaID = orden.id; 
         
-        // Tambien mostramos "(Sin Patente)" en el detalle que se abre si aplica
-        let txtPatenteDetalle = (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') ? patenteFormateada : "(Sin Patente)";
-        document.getElementById("detalle-patente").textContent = txtPatenteDetalle;
+        // AJUSTE: Modificamos visualmente el elemento del detalle si viene vacío para que sea más discreto
+        const elPatenteDetalle = document.getElementById("detalle-patente");
+        if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
+            elPatenteDetalle.textContent = patenteFormateada;
+            elPatenteDetalle.style.fontSize = "1.3em";
+            elPatenteDetalle.style.color = "inherit";
+            elPatenteDetalle.style.fontStyle = "normal";
+        } else {
+            elPatenteDetalle.textContent = "Sin Patente Declarada";
+            elPatenteDetalle.style.fontSize = "0.95em";
+            elPatenteDetalle.style.color = "#777777";
+            elPatenteDetalle.style.fontStyle = "italic";
+        }
+
         document.getElementById("detalle-empresa").textContent = nombreEmpresa;
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         document.getElementById("detalle-litros").textContent = orden.litros_pedidos + " L";
@@ -210,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (orden.efectivo_pedido > 0) {
             cajaEfectivo.style.display = "block";
             document.getElementById("detalle-efectivo-pedido").textContent = orden.efectivo_pedido.toLocaleString('es-AR');
-            inputEfectivoEntregado.value = orden.efectivo_pedido; // Se pre-carga con lo pedido
+            inputEfectivoEntregado.value = orden.efectivo_pedido; 
         } else {
             cajaEfectivo.style.display = "none";
             inputEfectivoEntregado.value = 0;
@@ -251,11 +277,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 btnIniciar.disabled = false; btnIniciar.textContent = "INICIAR CARGA"; return;
             }
 
-            // Capturamos el efectivo que el playero dice entregar
             const efectivoReal = parseInt(document.getElementById("input-efectivo-entregado").value) || 0;
 
             if (cliente.requiere_foto_remito === true) {
-                // RUTA A: CON FOTO
                 if (!archivoImagenCapturado) {
                     visualCamara.style.display = 'block';
                     btnIniciar.disabled = true; 
@@ -281,13 +305,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const { data: publicUrlData } = supabaseCliente.storage.from('remitos').getPublicUrl(nombreArchivoUnique);
 
                 btnIniciar.textContent = "GUARDANDO DESPACHO...";
-                const { error: errUpdate } = await supabaseCliente
+                const { error: errUpdate = null } = await supabaseCliente
                     .from('ordenes_carga')
                     .update({ 
                         estado: 'DESPACHADO',
                         fecha_despacho: new Date().toISOString(),
                         url_foto: publicUrlData.publicUrl,
-                        efectivo_entregado: efectivoReal // NUEVO DATO
+                        efectivo_entregado: efectivoReal 
                     })
                     .eq('id', orden.id);
 
@@ -300,7 +324,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
             } else {
-                // RUTA B: SIN FOTO REQUERIDA
                 const mensajeAlerta = `⚠️ Está a punto de despachar ${orden.litros_pedidos} L y entregar $${efectivoReal} a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
                 if (!confirm(mensajeAlerta)) {
                     btnIniciar.disabled = false; btnIniciar.textContent = "INICIAR CARGA"; return;
@@ -312,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     .update({ 
                         estado: 'DESPACHADO',
                         fecha_despacho: new Date().toISOString(),
-                        efectivo_entregado: efectivoReal // NUEVO DATO
+                        efectivo_entregado: efectivoReal 
                     })
                     .eq('id', orden.id);
 
