@@ -5,7 +5,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 let idClienteActual = null;
 let limiteEfectivoActual = 0;
 let usaFormatoEspecial = false; 
-let eligeCuitFacturar = false; // NUEVO: Bandera para saber si el cliente usa estos campos
+let eligeCuitFacturar = false; 
 let idOrdenEditando = null; 
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
-    // NUEVO: Agregamos elige_cuit_facturar en la consulta
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
         .from('clientes').select('id, nombre, limite_efectivo, formato_especial, elige_cuit_facturar')
         .eq('auth_user_id', user.id).single();
@@ -24,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     idClienteActual = clienteDatos.id;
     limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
     usaFormatoEspecial = clienteDatos.formato_especial === true; 
-    eligeCuitFacturar = clienteDatos.elige_cuit_facturar === true; // Guardamos la variable
+    eligeCuitFacturar = clienteDatos.elige_cuit_facturar === true;
 
     document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
     document.querySelector('.input-bloqueado').value = clienteDatos.nombre;
@@ -42,7 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if(cajaEspecial) cajaEspecial.style.display = "none";
     }
 
-    // --- NUEVO: FUNCIÓN PARA MOSTRAR/OCULTAR CAMPOS DE FACTURACIÓN ---
     function controlarCamposFacturacion() {
         const cajaFacturacion = document.getElementById("caja-facturacion-especial");
         if (eligeCuitFacturar) {
@@ -52,6 +50,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
     controlarCamposFacturacion();
+
+    // --- NUEVO: LÓGICA DEL CHECKBOX "TANQUE LLENO" ---
+    const chkTanqueLleno = document.getElementById("tanque_lleno");
+    const inputLitros = document.getElementById("litros");
+
+    if (chkTanqueLleno && inputLitros) {
+        chkTanqueLleno.addEventListener("change", function() {
+            if (this.checked) {
+                inputLitros.value = ""; // Vaciamos el valor
+                inputLitros.disabled = true; // Lo bloqueamos
+                inputLitros.placeholder = "Tanque Lleno";
+                inputLitros.style.backgroundColor = "#e9ecef";
+            } else {
+                inputLitros.disabled = false; // Lo habilitamos
+                inputLitros.placeholder = "Ej: 500";
+                inputLitros.style.backgroundColor = "";
+            }
+        });
+    }
 
     const formulario = document.getElementById("formulario-orden");
     const btnEnviar = formulario.querySelector('button[type="submit"]');
@@ -66,6 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
+        // Seleccionamos también la nueva columna tanque_lleno
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
             .eq('cliente_id', idClienteActual)
@@ -102,10 +120,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 `;
             } else {
-                // NUEVO: Le pasamos los datos de CUIT y Razón social al botón editar
+                // Pasamos si es tanque lleno al botón editar
                 accionesHtml = `
                     <div class="celda-acciones">
-                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}', '${orden.factura_cuit || ''}', '${orden.factura_razon_social || ''}')">✏️</button>
+                        <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos || 0}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}', '${orden.factura_cuit || ''}', '${orden.factura_razon_social || ''}', ${orden.tanque_lleno})">✏️</button>
                         <button class="btn-accion delete" onclick="eliminarOrden(${orden.id})">🗑️</button>
                     </div>
                 `;
@@ -125,13 +143,19 @@ document.addEventListener("DOMContentLoaded", async () => {
                 numeroMostrar = `L:${orden.nro_orden_litros_interna || '-'} | E:${orden.nro_orden_efectivo_interna || '-'}`;
             }
 
+            // Lógica visual para la tabla
+            let textoLitros = orden.litros_pedidos ? `${orden.litros_pedidos} L` : '0 L';
+            if (orden.tanque_lleno) {
+                textoLitros = `<span style="background-color: #e1f5fe; color: #0288d1; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em;">Tanque Lleno</span>`;
+            }
+
             fila.innerHTML = `
                 <td>#${orden.id}</td>
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
                 <td>${fechaFormateada}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
                 <td>${orden.chofer || 'Sin chofer'}</td> 
-                <td>${orden.litros_pedidos} L</td>
+                <td>${textoLitros}</td>
                 <td><span class="estado ${claseEstado}">${orden.estado}</span></td>
                 <td>${accionesHtml}</td>
             `;
@@ -164,13 +188,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (error) alert("No se pudo eliminar."); else cargarOrdenes();
     };
 
-    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo, fcCuit, fcRs) => {
+    window.prepararEdicion = (id, patente, chofer, litros, efectivo, nroCliente, sucursal, nroLitros, nroEfectivo, fcCuit, fcRs, isTanqueLleno) => {
         idOrdenEditando = id;
         document.getElementById("sucursal").value = sucursal || "";
         document.getElementById("patente").value = patente || "";
         document.getElementById("chofer").value = chofer;
-        document.getElementById("litros").value = litros;
         document.getElementById("efectivo").value = efectivo;
+        
+        // Manejamos el tilde al editar
+        const chk = document.getElementById("tanque_lleno");
+        const inpLts = document.getElementById("litros");
+        
+        if (isTanqueLleno) {
+            chk.checked = true;
+            inpLts.value = "";
+            inpLts.disabled = true;
+            inpLts.placeholder = "Tanque Lleno";
+            inpLts.style.backgroundColor = "#e9ecef";
+        } else {
+            chk.checked = false;
+            inpLts.value = litros;
+            inpLts.disabled = false;
+            inpLts.placeholder = "Ej: 500";
+            inpLts.style.backgroundColor = "";
+        }
         
         if (usaFormatoEspecial) {
             document.getElementById("nro_orden_litros_interna").value = nroLitros;
@@ -179,7 +220,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("nro_orden_cliente").value = nroCliente;
         }
 
-        // NUEVO: Rellenamos los campos de facturación si los tiene habilitados
         if (eligeCuitFacturar) {
             document.getElementById("factura_cuit").value = (fcCuit && fcCuit !== 'null') ? fcCuit : "";
             document.getElementById("factura_razon_social").value = (fcRs && fcRs !== 'null') ? fcRs : "";
@@ -199,11 +239,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         const sucursal = document.getElementById("sucursal").value;
         const patente = document.getElementById("patente").value.toUpperCase().replace(/\s+/g, ''); 
         const chofer = document.getElementById("chofer").value.toUpperCase();
-        const litros = document.getElementById("litros").value;
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
+        
+        // Validamos litros o tanque lleno
+        const isTanqueLleno = document.getElementById("tanque_lleno").checked;
+        const litrosInput = document.getElementById("litros").value;
+        let litrosFinal = null;
 
-        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer || !litros) {
-            alert("⚠️ Por favor, completá los campos obligatorios (Sucursal, Chofer y Litros).");
+        if (!isTanqueLleno) {
+            if (!litrosInput || litrosInput <= 0) {
+                alert("⚠️ Por favor, ingresá la cantidad de litros o tildá 'Llenar Tanque'.");
+                return;
+            }
+            litrosFinal = parseInt(litrosInput);
+        } else {
+            litrosFinal = 0; // Guardamos 0 si es tanque lleno para no romper cuentas
+        }
+
+        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer) {
+            alert("⚠️ Por favor, completá los campos obligatorios (Sucursal y Chofer).");
             return;
         }
 
@@ -228,7 +282,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
         }
 
-        // --- NUEVO: VALIDAMOS Y GUARDAMOS LOS DATOS DE FACTURACIÓN ---
         let campoCuitVal = null;
         let campoRsVal = null;
 
@@ -240,8 +293,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 alert("⚠️ ATENCIÓN: Al tener habilitada la facturación especial, el CUIT y la Razón Social a facturar son campos obligatorios.");
                 return;
             }
-            campoCuitVal = parseInt(txtCuit); // int8 en Supabase
-            campoRsVal = txtRs.toUpperCase(); // text en Supabase
+            campoCuitVal = parseInt(txtCuit); 
+            campoRsVal = txtRs.toUpperCase(); 
         }
 
         const datos = {
@@ -249,13 +302,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             sucursal_carga_id: parseInt(sucursal), 
             patente: patente || null, 
             chofer,
-            litros_pedidos: parseInt(litros),
+            litros_pedidos: litrosFinal,
+            tanque_lleno: isTanqueLleno, // Guardamos el estado del checkbox
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
             nro_orden_litros_interna: nroOrdenLitros, 
             nro_orden_efectivo_interna: nroOrdenEfectivo,
-            factura_cuit: campoCuitVal,              // Se guarda en base de datos
-            factura_razon_social: campoRsVal,        // Se guarda en base de datos
+            factura_cuit: campoCuitVal,              
+            factura_razon_social: campoRsVal,        
             estado: 'PENDIENTE'
         };
 
@@ -274,8 +328,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             idOrdenEditando = null;
             btnEnviar.textContent = "Emitir Orden de Carga";
             btnEnviar.style.backgroundColor = ""; 
+            
+            // Reset manual para manejar el checkbox de tanque lleno
             formulario.reset(); 
+            document.getElementById("litros").disabled = false;
+            document.getElementById("litros").placeholder = "Ej: 500";
+            document.getElementById("litros").style.backgroundColor = "";
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
+            
             cargarOrdenes();
             cargarSugerencias(); 
         }
