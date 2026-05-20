@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function cargarOrdenesPendientes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
-            .select('*, clientes(nombre)') 
+            .select('*, clientes(nombre, factura_cuit, factura_razon_social)') 
             .eq('estado', 'PENDIENTE')
             .eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL)
             .order('fecha_creacion', { ascending: true });
@@ -148,7 +148,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const nombreEmpresa = orden.clientes ? orden.clientes.nombre : "CLIENTE DESCONOCIDO";
             const nombreChofer = orden.chofer ? orden.chofer : "SIN ESPECIFICAR"; 
 
-            // Formateamos la fecha de creación de la orden
             let fechaFormateada = "Sin fecha";
             if (orden.fecha_creacion) {
                 const fechaObj = new Date(orden.fecha_creacion.replace(" ", "T"));
@@ -161,7 +160,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const tarjeta = document.createElement("div");
             tarjeta.className = "tarjeta-playa";
             
-            // MODIFICACIÓN 1: Estilo sutil para cuando no hay patente
             let htmlPatente = '';
             if (patenteFormateada && patenteFormateada !== 'null' && patenteFormateada.trim() !== '') {
                 htmlPatente = `
@@ -178,7 +176,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>`;
             }
 
-            // MODIFICACIÓN 2: Agregamos la fecha en la tarjeta
+            let htmlFacturacion = "";
+            if (orden.clientes.factura_cuit && orden.clientes.factura_razon_social) {
+                htmlFacturacion = `
+                    <div style="background-color: #e8f4fd; border: 1px solid #b3d7ff; padding: 6px 10px; margin-bottom: 10px; border-radius: 5px; color: #004085; font-size: 0.85em;">
+                        <strong>FACTURAR A:</strong><br>
+                        CUIT: ${orden.clientes.factura_cuit}<br>
+                        RS: ${orden.clientes.factura_razon_social}
+                    </div>
+                `;
+            }
+
+            // NUEVO: Lógica visual para Tanque Lleno en la tarjeta
+            let htmlLitros = `<div class="txt-litros">${orden.litros_pedidos} L</div>`;
+            if (orden.tanque_lleno) {
+                htmlLitros = `<div class="txt-litros" style="color: #0277bd; font-size: 1.1em; padding: 4px 8px; background: #e1f5fe; border-radius: 4px;">TANQUE LLENO</div>`;
+            }
+
             tarjeta.innerHTML = `
                 <div class="tarjeta-bloque-superior">
                     ${htmlPatente}
@@ -188,9 +202,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
                 
+                ${htmlFacturacion}
+                
                 <div class="tarjeta-bloque-inferior" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div class="txt-litros">${orden.litros_pedidos} L</div>
+                        ${htmlLitros}
                         <div class="tarjeta-badges">
                             <span class="status-tag">${orden.estado}</span>
                             ${iconoEfectivo}
@@ -227,7 +243,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById("detalle-empresa").textContent = nombreEmpresa;
         document.getElementById("detalle-chofer").textContent = orden.chofer;
-        document.getElementById("detalle-litros").textContent = orden.litros_pedidos + " L";
+        
+        // NUEVO: Lógica visual para Tanque Lleno en el modal de detalle
+        const elLitrosDetalle = document.getElementById("detalle-litros");
+        if (orden.tanque_lleno) {
+            elLitrosDetalle.textContent = "TANQUE LLENO";
+            elLitrosDetalle.style.color = "#0277bd";
+            elLitrosDetalle.style.fontSize = "1.4em";
+        } else {
+            elLitrosDetalle.textContent = orden.litros_pedidos + " L";
+            elLitrosDetalle.style.color = ""; // Vuelve al color por defecto si no es tanque lleno
+            elLitrosDetalle.style.fontSize = "";
+        }
 
         const cajaEfectivo = document.getElementById("caja-efectivo");
         const inputEfectivoEntregado = document.getElementById("input-efectivo-entregado");
@@ -323,7 +350,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
             } else {
-                const mensajeAlerta = `⚠️ Está a punto de despachar ${orden.litros_pedidos} L y entregar $${efectivoReal} a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
+                // Modificamos el mensaje de alerta para que sea coherente
+                const textoLitros = orden.tanque_lleno ? "TANQUE LLENO" : `${orden.litros_pedidos} L`;
+                const mensajeAlerta = `⚠️ Está a punto de despachar ${textoLitros} y entregar $${efectivoReal} a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
+                
                 if (!confirm(mensajeAlerta)) {
                     btnIniciar.disabled = false; btnIniciar.textContent = "INICIAR CARGA"; return;
                 }
