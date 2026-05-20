@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function cargarOrdenesPendientes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
-            .select('*, clientes(nombre, factura_cuit, factura_razon_social)') 
+            .select('*, clientes(nombre)') // CORRECCIÓN 1 APLICADA AQUÍ
             .eq('estado', 'PENDIENTE')
             .eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL)
             .order('fecha_creacion', { ascending: true });
@@ -176,20 +176,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>`;
             }
 
+            // CORRECCIÓN 2 APLICADA AQUÍ: Leemos directo de "orden", no de "orden.clientes"
             let htmlFacturacion = "";
-            if (orden.clientes.factura_cuit && orden.clientes.factura_razon_social) {
+            if (orden.factura_cuit && orden.factura_razon_social) {
                 htmlFacturacion = `
                     <div style="background-color: #e8f4fd; border: 1px solid #b3d7ff; padding: 6px 10px; margin-bottom: 10px; border-radius: 5px; color: #004085; font-size: 0.85em;">
                         <strong>FACTURAR A:</strong><br>
-                        CUIT: ${orden.clientes.factura_cuit}<br>
-                        RS: ${orden.clientes.factura_razon_social}
+                        CUIT: ${orden.factura_cuit}<br>
+                        RS: ${orden.factura_razon_social}
                     </div>
                 `;
             }
 
-            // NUEVO: Lógica visual para Tanque Lleno en la tarjeta
-            let htmlLitros = `<div class="txt-litros">${orden.litros_pedidos} L</div>`;
-            if (orden.tanque_lleno) {
+            let htmlLitros = `<div class="txt-litros">${orden.litros_pedidos || 0} L</div>`;
+            if (orden.tanque_lleno === true) {
                 htmlLitros = `<div class="txt-litros" style="color: #0277bd; font-size: 1.1em; padding: 4px 8px; background: #e1f5fe; border-radius: 4px;">TANQUE LLENO</div>`;
             }
 
@@ -244,15 +244,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detalle-empresa").textContent = nombreEmpresa;
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         
-        // NUEVO: Lógica visual para Tanque Lleno en el modal de detalle
         const elLitrosDetalle = document.getElementById("detalle-litros");
-        if (orden.tanque_lleno) {
+        if (orden.tanque_lleno === true) {
             elLitrosDetalle.textContent = "TANQUE LLENO";
             elLitrosDetalle.style.color = "#0277bd";
             elLitrosDetalle.style.fontSize = "1.4em";
         } else {
-            elLitrosDetalle.textContent = orden.litros_pedidos + " L";
-            elLitrosDetalle.style.color = ""; // Vuelve al color por defecto si no es tanque lleno
+            elLitrosDetalle.textContent = (orden.litros_pedidos || 0) + " L";
+            elLitrosDetalle.style.color = ""; 
             elLitrosDetalle.style.fontSize = "";
         }
 
@@ -350,8 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
             } else {
-                // Modificamos el mensaje de alerta para que sea coherente
-                const textoLitros = orden.tanque_lleno ? "TANQUE LLENO" : `${orden.litros_pedidos} L`;
+                const textoLitros = orden.tanque_lleno ? "TANQUE LLENO" : `${orden.litros_pedidos || 0} L`;
                 const mensajeAlerta = `⚠️ Está a punto de despachar ${textoLitros} y entregar $${efectivoReal} a:\n\n👤 ${cliente.nombre}\n\n¿Confirma que el camión ya fue cargado?`;
                 
                 if (!confirm(mensajeAlerta)) {
