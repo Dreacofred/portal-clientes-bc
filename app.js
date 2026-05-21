@@ -289,12 +289,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             const txtCuit = document.getElementById("factura_cuit").value.trim();
             const txtRs = document.getElementById("factura_razon_social").value.trim();
 
-            if (!txtCuit || !txtRs) {
-                alert("⚠️ ATENCIÓN: Al tener habilitada la facturación especial, el CUIT y la Razón Social a facturar son campos obligatorios.");
-                return;
-            }
-            campoCuitVal = parseInt(txtCuit); 
-            campoRsVal = txtRs.toUpperCase(); 
+            // Quitamos la alerta restrictiva y el 'return'. Ahora solo los guarda si están, si no los deja nulos.
+            if (txtCuit) campoCuitVal = parseInt(txtCuit); 
+            if (txtRs) campoRsVal = txtRs.toUpperCase(); 
         }
 
         const datos = {
