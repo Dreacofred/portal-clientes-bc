@@ -32,10 +32,21 @@
     <main class="contenedor">
         <section class="tarjeta form-section" style="max-width: 600px; margin: 0 auto; margin-top: 20px;">
             <h3 style="text-align: center;">Configurar Exportación a Excel</h3>
-            <p style="text-align: center; color: #666; font-size: 0.95em; line-height: 1.5;">
-                Tildá las columnas que querés incluir en tu archivo.<br>
+            <p style="text-align: center; color: #666; font-size: 0.95em; line-height: 1.5; margin-bottom: 20px;">
+                Seleccioná el rango de fechas y tildá las columnas que querés incluir.<br>
                 Podés arrastrarlas desde el ícono (≡) para cambiar el orden.
             </p>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border: 1px solid #eaeaea; border-radius: 8px;">
+                <div style="flex: 1;">
+                    <label for="fecha-desde" style="font-weight: 600; color: #444; display: block; margin-bottom: 5px; font-size: 0.9em;">Desde:</label>
+                    <input type="date" id="fecha-desde" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit;">
+                </div>
+                <div style="flex: 1;">
+                    <label for="fecha-hasta" style="font-weight: 600; color: #444; display: block; margin-bottom: 5px; font-size: 0.9em;">Hasta:</label>
+                    <input type="date" id="fecha-hasta" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit;">
+                </div>
+            </div>
             
             <div id="lista-columnas" style="margin: 25px 0; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; padding: 10px;">
                 </div>
