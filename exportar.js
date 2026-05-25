@@ -5,9 +5,6 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 let idClienteActual = null;
 let usaFormatoEspecial = false;
 
-// 1. DICCIONARIO DE COLUMNAS DISPONIBLES
-// Acá definimos qué columnas le ofrecemos al cliente. 
-// 'checked: true' significa que arranca tildada por defecto.
 const columnasDisponibles = [
     { id: 'id', label: 'Nº Orden BC', checked: true },
     { id: 'nro_orden', label: 'Nº de Cliente / Interno', checked: true },
@@ -30,7 +27,6 @@ const mapaSucursales = { 1: 'Reconquista', 2: 'Avellaneda', 3: 'Florencia', 4: '
 
 document.addEventListener("DOMContentLoaded", async () => {
     
-    // --- VERIFICACIÓN DE SEGURIDAD ---
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
@@ -42,14 +38,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     idClienteActual = clienteDatos.id;
     usaFormatoEspecial = clienteDatos.formato_especial === true;
 
-    // --- RENDERIZAR LA LISTA ARRASTRABLE ---
     const contenedorLista = document.getElementById('lista-columnas');
     
     columnasDisponibles.forEach(col => {
         const div = document.createElement('div');
         div.className = 'item-columna';
         div.style.cssText = 'display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: white; border: 1px solid #e0e0e0; border-radius: 6px; cursor: grab; transition: background 0.2s;';
-        div.dataset.id = col.id; // Guardamos el ID secreto en el HTML
+        div.dataset.id = col.id;
         
         div.innerHTML = `
             <span style="margin-right: 15px; color: #a0a0a0; font-size: 1.5em; cursor: grab;">≡</span>
@@ -59,26 +54,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         contenedorLista.appendChild(div);
     });
 
-    // --- ACTIVAR DRAG & DROP (SORTABLEJS) ---
     new Sortable(contenedorLista, {
         animation: 150,
-        ghostClass: 'sortable-ghost', // Una clase CSS que podríamos usar para que se vea sombreado al mover
-        handle: 'span', // Solo permite arrastrar si agarrás el ícono ≡
+        handle: 'span',
     });
 
-    // --- LÓGICA DEL BOTÓN EXPORTAR ---
     document.getElementById('btn-descargar').addEventListener('click', async () => {
         const btn = document.getElementById('btn-descargar');
         btn.textContent = '⏳ Fabricando Excel...';
         btn.disabled = true;
 
-        // 1. Leer qué columnas eligió y en qué orden quedaron en la pantalla
         const elementosHtml = contenedorLista.querySelectorAll('.item-columna');
         const columnasSeleccionadas = [];
         
         elementosHtml.forEach(el => {
             const checkbox = el.querySelector('.chk-columna');
-            if (checkbox.checked) { // Solo si está tildada
+            if (checkbox.checked) {
                 columnasSeleccionadas.push({ 
                     id: el.dataset.id, 
                     label: el.querySelector('label').textContent 
@@ -93,12 +84,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // 2. Traer TODAS las órdenes del cliente desde Supabase
-        const { data: ordenes, error } = await supabaseCliente
+        // --- CAPTURA Y CONSTRUCCIÓN DEL FILTRO DE FECHAS ---
+        const fechaDesde = document.getElementById('fecha-desde').value;
+        const fechaHasta = document.getElementById('fecha-hasta').value;
+
+        let consulta = supabaseCliente
             .from('ordenes_carga')
             .select('*')
-            .eq('cliente_id', idClienteActual)
-            .order('id', { ascending: false }); 
+            .eq('cliente_id', idClienteActual);
+
+        // Si puso fecha "Desde", filtramos desde el inicio de ese día (00:00:00)
+        if (fechaDesde) {
+            consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00`);
+        }
+        // Si puso fecha "Hasta", filtramos hasta el último segundo de ese día (23:59:59)
+        if (fechaHasta) {
+            consulta = consulta.lte('fecha_creacion', `${fechaHasta}T23:59:59`);
+        }
+
+        const { data: ordenes, error } = await consulta.order('id', { ascending: false });
 
         if (error || !ordenes) {
             alert("Error al conectar con la base de datos.");
@@ -107,14 +111,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // 3. Procesar los datos cruzándolos con las columnas seleccionadas
+        if (ordenes.length === 0) {
+            alert("📭 No se encontraron órdenes en el rango de fechas seleccionado.");
+            btn.textContent = '⬇️ Descargar Excel';
+            btn.disabled = false;
+            return;
+        }
+
         const datosParaExcel = ordenes.map(orden => {
             const filaExcel = {};
             
             columnasSeleccionadas.forEach(col => {
                 let valor = orden[col.id];
 
-                // Formateos amigables (traducir IDs a texto, arreglar fechas)
                 if (col.id === 'sucursal') {
                     valor = mapaSucursales[orden.sucursal_carga_id] || '---';
                 } 
@@ -146,23 +155,19 @@ document.addEventListener("DOMContentLoaded", async () => {
                     valor = valor ? valor.toUpperCase() : '---';
                 }
 
-                // Asignar el valor final usando la etiqueta como encabezado
                 filaExcel[col.label] = valor;
             });
             
             return filaExcel;
         });
 
-        // 4. Fabricar el archivo .xlsx
         const hoja = XLSX.utils.json_to_sheet(datosParaExcel);
         const libro = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(libro, hoja, "Historial_Cargas");
         
-        // Un toque de diseño: ajustar ancho de columnas según el largo del título
         const anchos = columnasSeleccionadas.map(col => ({ wch: Math.max(col.label.length + 5, 15) }));
         hoja['!cols'] = anchos;
 
-        // Disparar la descarga
         XLSX.writeFile(libro, `BC_Reporte_Cargas_${new Date().toISOString().slice(0,10)}.xlsx`);
 
         btn.textContent = '⬇️ Descargar Excel';
