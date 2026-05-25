@@ -83,7 +83,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // --- C. TABLA DE ÓRDENES CON ACCIONES ---
     async function cargarOrdenes() {
-        // Seleccionamos también la nueva columna tanque_lleno
         const { data, error } = await supabaseCliente
             .from('ordenes_carga').select('*')
             .eq('cliente_id', idClienteActual)
@@ -98,14 +97,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         data.forEach(orden => {
             const fila = document.createElement("tr");
-            let fechaRaw = orden.fecha_creacion;
             let claseEstado = "pendiente";
             let accionesHtml = "";
 
             if (orden.estado === 'DESPACHADO' || orden.estado === 'AUDITADO') {
                 fila.classList.add("fila-despachada");
                 claseEstado = "despachado";
-                if (orden.fecha_despacho) fechaRaw = orden.fecha_despacho;
                 
                 let btnFoto = "";
                 if (orden.url_foto) {
@@ -120,7 +117,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 `;
             } else {
-                // Pasamos si es tanque lleno al botón editar
                 accionesHtml = `
                     <div class="celda-acciones">
                         <button class="btn-accion edit" onclick="prepararEdicion(${orden.id}, '${orden.patente || ''}', '${orden.chofer}', ${orden.litros_pedidos || 0}, ${orden.efectivo_pedido}, '${orden.nro_orden_cliente || ''}', ${orden.sucursal_carga_id}, '${orden.nro_orden_litros_interna || ''}', '${orden.nro_orden_efectivo_interna || ''}', '${orden.factura_cuit || ''}', '${orden.factura_razon_social || ''}', ${orden.tanque_lleno})">✏️</button>
@@ -129,30 +125,53 @@ document.addEventListener("DOMContentLoaded", async () => {
                 `;
             }
 
-            let fechaFormateada = "Sin fecha";
-            if (fechaRaw) {
-                const fechaObj = new Date(fechaRaw.replace(" ", "T"));
-                if (!isNaN(fechaObj)) {
-                    fechaFormateada = fechaObj.toLocaleDateString('es-AR') + ' ' + 
-                                      fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+            // === 2. LÓGICA PARA FECHA Y HORARIO SEGÚN EL ESTADO ===
+            let fechaAMostrar = "Sin fecha";
+            let etiquetaFecha = "";
+
+            if (orden.estado === 'PENDIENTE') {
+                etiquetaFecha = "Emitida: ";
+                if (orden.fecha_creacion) {
+                    const fechaObj = new Date(orden.fecha_creacion.replace(" ", "T"));
+                    if (!isNaN(fechaObj)) {
+                        fechaAMostrar = fechaObj.toLocaleDateString('es-AR') + ' ' + 
+                                        fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+                    }
+                }
+            } else {
+                // Si está DESPACHADO o AUDITADO, muestra la fecha y hora de carga real
+                etiquetaFecha = "Cargada: ";
+                if (orden.fecha_despacho) {
+                    const fechaObj = new Date(orden.fecha_despacho.replace(" ", "T"));
+                    if (!isNaN(fechaObj)) {
+                        fechaAMostrar = fechaObj.toLocaleDateString('es-AR') + ' ' + 
+                                        fechaObj.toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'});
+                    }
                 }
             }
 
+            // Formato de Número de Cliente
             let numeroMostrar = orden.nro_orden_cliente || '-';
             if (usaFormatoEspecial) {
                 numeroMostrar = `L:${orden.nro_orden_litros_interna || '-'} | E:${orden.nro_orden_efectivo_interna || '-'}`;
             }
 
-            // Lógica visual para la tabla
-            let textoLitros = orden.litros_pedidos ? `${orden.litros_pedidos} L` : '0 L';
-            if (orden.tanque_lleno) {
+            // === 3. LÓGICA PARA LOS LITROS SEGÚN EL ESTADO ===
+            let textoLitros = "";
+            if (orden.estado === 'AUDITADO') {
+                // Si ya está auditado, mostramos los reales (si es null o 0, ponemos 0)
+                textoLitros = `${orden.litros_reales || 0} L`;
+            } else if (orden.tanque_lleno === true) {
                 textoLitros = `<span style="background-color: #e1f5fe; color: #0288d1; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.9em;">Tanque Lleno</span>`;
+            } else {
+                // Pendiente o Despachado, pero no auditado
+                textoLitros = `${orden.litros_pedidos || 0} L`;
             }
 
+            // === 1. EL ID YA NO SE INCLUYE (Borramos la celda <td>#${orden.id}</td>) ===
             fila.innerHTML = `
-                <td>#${orden.id}</td>
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
-                <td>${fechaFormateada}</td>
+                <td><span style="font-size: 0.8em; color: #777; display: block;">${etiquetaFecha}</span>${fechaAMostrar}</td>
                 <td><strong>${mapaSucursales[orden.sucursal_carga_id] || '---'}</strong></td>
                 <td>${orden.chofer || 'Sin chofer'}</td> 
                 <td>${textoLitros}</td>
@@ -289,7 +308,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             const txtCuit = document.getElementById("factura_cuit").value.trim();
             const txtRs = document.getElementById("factura_razon_social").value.trim();
 
-            // Quitamos la alerta restrictiva y el 'return'. Ahora solo los guarda si están, si no los deja nulos.
             if (txtCuit) campoCuitVal = parseInt(txtCuit); 
             if (txtRs) campoRsVal = txtRs.toUpperCase(); 
         }
@@ -300,7 +318,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             patente: patente || null, 
             chofer,
             litros_pedidos: litrosFinal,
-            tanque_lleno: isTanqueLleno, // Guardamos el estado del checkbox
+            tanque_lleno: isTanqueLleno, 
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
             nro_orden_litros_interna: nroOrdenLitros, 
@@ -326,7 +344,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             btnEnviar.textContent = "Emitir Orden de Carga";
             btnEnviar.style.backgroundColor = ""; 
             
-            // Reset manual para manejar el checkbox de tanque lleno
             formulario.reset(); 
             document.getElementById("litros").disabled = false;
             document.getElementById("litros").placeholder = "Ej: 500";
