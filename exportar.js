@@ -5,6 +5,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 let idClienteActual = null;
 let usaFormatoEspecial = false;
 
+// CORRECCIÓN 1: Ahora Factura y Monto arrancan tildadas por defecto (checked: true)
 const columnasDisponibles = [
     { id: 'id', label: 'Nº Orden BC', checked: true },
     { id: 'nro_orden', label: 'Nº de Cliente / Interno', checked: true },
@@ -18,8 +19,8 @@ const columnasDisponibles = [
     { id: 'litros_reales', label: 'Litros Cargados (Auditado)', checked: true },
     { id: 'efectivo_pedido', label: 'Efectivo Pedido ($)', checked: true },
     { id: 'efectivo_entregado', label: 'Efectivo Entregado ($)', checked: false },
-    { id: 'numero_factura', label: 'Nº Factura', checked: false },
-    { id: 'monto_factura', label: 'Monto Factura ($)', checked: false },
+    { id: 'numero_factura', label: 'Nº Factura', checked: true },
+    { id: 'monto_factura', label: 'Monto Factura ($)', checked: true },
     { id: 'estado', label: 'Estado Actual', checked: true }
 ];
 
@@ -84,7 +85,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // --- CAPTURA Y CONSTRUCCIÓN DEL FILTRO DE FECHAS ---
         const fechaDesde = document.getElementById('fecha-desde').value;
         const fechaHasta = document.getElementById('fecha-hasta').value;
 
@@ -93,11 +93,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             .select('*')
             .eq('cliente_id', idClienteActual);
 
-        // Si puso fecha "Desde", filtramos desde el inicio de ese día (00:00:00)
         if (fechaDesde) {
             consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00`);
         }
-        // Si puso fecha "Hasta", filtramos hasta el último segundo de ese día (23:59:59)
         if (fechaHasta) {
             consulta = consulta.lte('fecha_creacion', `${fechaHasta}T23:59:59`);
         }
@@ -118,6 +116,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        // CORRECCIÓN 2: Lógica refinada para mapear datos reales o mostrar guiones si no fue auditado
         const datosParaExcel = ordenes.map(orden => {
             const filaExcel = {};
             
@@ -145,11 +144,34 @@ document.addEventListener("DOMContentLoaded", async () => {
                 else if (col.id === 'tanque_lleno') {
                     valor = orden.tanque_lleno ? 'SÍ' : 'NO';
                 }
-                else if (col.id === 'litros_pedidos' || col.id === 'litros_reales') {
+                else if (col.id === 'litros_pedidos') {
                      valor = valor ? parseFloat(valor) : 0;
                 }
-                else if (col.id === 'efectivo_pedido' || col.id === 'efectivo_entregado' || col.id === 'monto_factura') {
+                // Si litros_reales es null o 0 y la orden NO está auditada, ponemos un guion
+                else if (col.id === 'litros_reales') {
+                    if (orden.estado !== 'AUDITADO') {
+                        valor = '-';
+                    } else {
+                        valor = valor ? parseFloat(valor) : 0;
+                    }
+                }
+                else if (col.id === 'efectivo_pedido') {
                      valor = valor ? parseFloat(valor) : 0;
+                }
+                else if (col.id === 'efectivo_entregado') {
+                    valor = valor ? parseFloat(valor) : 0;
+                }
+                // Si el monto de factura es null o 0 y no está auditado, va un guion
+                else if (col.id === 'monto_factura') {
+                    if (orden.estado !== 'AUDITADO') {
+                        valor = '-';
+                    } else {
+                        valor = valor ? parseFloat(valor) : 0;
+                    }
+                }
+                // Si el número de factura no existe, mostramos guion
+                else if (col.id === 'numero_factura') {
+                    valor = (orden.estado === 'AUDITADO' && valor) ? valor : '-';
                 }
                 else if (col.id === 'patente') {
                     valor = valor ? valor.toUpperCase() : '---';
