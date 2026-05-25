@@ -4,7 +4,6 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
 
-// MODIFICACIÓN: Separamos los números de orden en columnas individuales
 const columnasDisponibles = [
     { id: 'id', label: 'Nº Orden BC', checked: true },
     { id: 'nro_orden_cliente', label: 'Nº Orden Cliente', checked: true },
@@ -88,10 +87,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         const fechaDesde = document.getElementById('fecha-desde').value;
         const fechaHasta = document.getElementById('fecha-hasta').value;
 
+        // --- NUEVO: CAPTURA DE FILTROS DE ESTADO ---
+        const estadosSeleccionados = [];
+        if (document.getElementById('est_pendiente').checked) estadosSeleccionados.push('PENDIENTE');
+        if (document.getElementById('est_despachado').checked) estadosSeleccionados.push('DESPACHADO');
+        if (document.getElementById('est_auditado').checked) estadosSeleccionados.push('AUDITADO');
+
+        if (estadosSeleccionados.length === 0) {
+            alert("⚠️ Debes seleccionar al menos un Estado a incluir para realizar la descarga.");
+            btn.textContent = '⬇️ Descargar Excel';
+            btn.disabled = false;
+            return;
+        }
+
         let consulta = supabaseCliente
             .from('ordenes_carga')
             .select('*')
-            .eq('cliente_id', idClienteActual);
+            .eq('cliente_id', idClienteActual)
+            .in('estado', estadosSeleccionados); // Filtramos dinámicamente por los estados elegidos
 
         if (fechaDesde) {
             consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00`);
@@ -110,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (ordenes.length === 0) {
-            alert("📭 No se encontraron órdenes en el rango de fechas seleccionado.");
+            alert("📭 No se encontraron órdenes con los filtros (fechas/estados) seleccionados.");
             btn.textContent = '⬇️ Descargar Excel';
             btn.disabled = false;
             return;
@@ -133,7 +146,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                         valor = '-';
                     }
                 }
-                // MODIFICACIÓN: Cada número de orden se lee limpio desde su columna correspondiente
                 else if (col.id === 'nro_orden_cliente' || col.id === 'nro_orden_litros_interna' || col.id === 'nro_orden_efectivo_interna') {
                     valor = valor || '-';
                 }
