@@ -3,12 +3,13 @@ const supabaseKey = 'sb_publishable_OvXN3LjawazkF5GNpsslUQ_SQOhTakr';
 const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
-let usaFormatoEspecial = false;
 
-// CORRECCIÓN 1: Ahora Factura y Monto arrancan tildadas por defecto (checked: true)
+// MODIFICACIÓN: Separamos los números de orden en columnas individuales
 const columnasDisponibles = [
     { id: 'id', label: 'Nº Orden BC', checked: true },
-    { id: 'nro_orden', label: 'Nº de Cliente / Interno', checked: true },
+    { id: 'nro_orden_cliente', label: 'Nº Orden Cliente', checked: true },
+    { id: 'nro_orden_litros_interna', label: 'Nº Orden Litros', checked: true },
+    { id: 'nro_orden_efectivo_interna', label: 'Nº Orden Efectivo', checked: true },
     { id: 'fecha_creacion', label: 'Fecha y Hora (Emisión)', checked: true },
     { id: 'fecha_despacho', label: 'Fecha y Hora (Carga Real)', checked: false },
     { id: 'sucursal', label: 'Sucursal', checked: true },
@@ -32,12 +33,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!user) { window.location.href = "login.html"; return; }
 
     const { data: clienteDatos } = await supabaseCliente
-        .from('clientes').select('id, formato_especial')
+        .from('clientes').select('id')
         .eq('auth_user_id', user.id).single();
 
     if (!clienteDatos) { alert("Error de usuario."); return; }
     idClienteActual = clienteDatos.id;
-    usaFormatoEspecial = clienteDatos.formato_especial === true;
 
     const contenedorLista = document.getElementById('lista-columnas');
     
@@ -116,7 +116,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // CORRECCIÓN 2: Lógica refinada para mapear datos reales o mostrar guiones si no fue auditado
         const datosParaExcel = ordenes.map(orden => {
             const filaExcel = {};
             
@@ -134,12 +133,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         valor = '-';
                     }
                 }
-                else if (col.id === 'nro_orden') {
-                    if (usaFormatoEspecial) {
-                        valor = `L:${orden.nro_orden_litros_interna || '-'} | E:${orden.nro_orden_efectivo_interna || '-'}`;
-                    } else {
-                        valor = orden.nro_orden_cliente || '-';
-                    }
+                // MODIFICACIÓN: Cada número de orden se lee limpio desde su columna correspondiente
+                else if (col.id === 'nro_orden_cliente' || col.id === 'nro_orden_litros_interna' || col.id === 'nro_orden_efectivo_interna') {
+                    valor = valor || '-';
                 }
                 else if (col.id === 'tanque_lleno') {
                     valor = orden.tanque_lleno ? 'SÍ' : 'NO';
@@ -147,7 +143,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 else if (col.id === 'litros_pedidos') {
                      valor = valor ? parseFloat(valor) : 0;
                 }
-                // Si litros_reales es null o 0 y la orden NO está auditada, ponemos un guion
                 else if (col.id === 'litros_reales') {
                     if (orden.estado !== 'AUDITADO') {
                         valor = '-';
@@ -155,13 +150,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         valor = valor ? parseFloat(valor) : 0;
                     }
                 }
-                else if (col.id === 'efectivo_pedido') {
+                else if (col.id === 'efectivo_pedido' || col.id === 'efectivo_entregado') {
                      valor = valor ? parseFloat(valor) : 0;
                 }
-                else if (col.id === 'efectivo_entregado') {
-                    valor = valor ? parseFloat(valor) : 0;
-                }
-                // Si el monto de factura es null o 0 y no está auditado, va un guion
                 else if (col.id === 'monto_factura') {
                     if (orden.estado !== 'AUDITADO') {
                         valor = '-';
@@ -169,7 +160,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                         valor = valor ? parseFloat(valor) : 0;
                     }
                 }
-                // Si el número de factura no existe, mostramos guion
                 else if (col.id === 'numero_factura') {
                     valor = (orden.estado === 'AUDITADO' && valor) ? valor : '-';
                 }
