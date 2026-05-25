@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportar Datos - BC Combustibles</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <header class="header-rojo">
+        <div class="header-izq" style="display: flex; align-items: center;">
+            <img src="https://bjhykcdhafoqpfkpngvw.supabase.co/storage/v1/object/public/remitos/Logo.jpeg" 
+                 alt="BC Combustibles" 
+                 style="height: 45px; border-radius: 50%; margin-right: 12px; border: 2px solid white;">
+            
+            <div style="display: flex; align-items: center;">
+                <h1 style="margin: 0; font-size: 20px;">BC Combustibles</h1>
+                <span class="separador" style="margin: 0 10px;">|</span>
+                <h2 style="margin: 0; font-size: 16px; font-weight: 400; opacity: 0.9;">Generador de Reportes</h2>
+            </div>
+        </div>
+        <div class="header-der">
+            <a href="index.html" style="color: white; text-decoration: none; font-weight: bold;">⬅ Volver al Inicio</a>
+        </div>
+    </header>
+
+    <main class="contenedor">
+        <section class="tarjeta form-section" style="max-width: 600px; margin: 0 auto; margin-top: 20px;">
+            <h3 style="text-align: center;">Configurar Exportación a Excel</h3>
+            <p style="text-align: center; color: #666; font-size: 0.95em; line-height: 1.5;">
+                Tildá las columnas que querés incluir en tu archivo.<br>
+                Podés arrastrarlas desde el ícono (≡) para cambiar el orden.
+            </p>
+            
+            <div id="lista-columnas" style="margin: 25px 0; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; padding: 10px;">
+                </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button id="btn-descargar" class="btn-rojo" style="flex: 1; background-color: #28a745; font-size: 1.1em;">⬇️ Descargar Excel</button>
+            </div>
+        </section>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="exportar.js"></script>
+</body>
+</html>
