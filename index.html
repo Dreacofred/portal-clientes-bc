@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal de Clientes Pro - BC Combustibles</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#C8102E">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -27,7 +29,12 @@
                 <span class="nombre-empresa">---</span>
             </div>
             <div class="icono-perfil">👤</div>
-            <div class="icono-salir" style="cursor: pointer;">🚪</div>
+            <div class="header-der" style="display: flex; align-items: center; gap: 15px;">
+            <button id="btn-instalar" style="display: none; background-color: #ffc107; color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                📲 Instalar App
+            </button>
+            <span class="icono-salir" title="Cerrar Sesión">🚪 Salir</span>
+        </div>
         </div>
     </header>
 
@@ -144,5 +151,42 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
+    <script>
+        // 1. Registro del motor de la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registro => console.log('PWA Lista y funcionando.'))
+                    .catch(error => console.log('Error en PWA:', error));
+            });
+        }
+
+        // 2. Lógica del Botón de Instalación Personalizado
+        let eventoInstalacion;
+        const btnInstalar = document.getElementById('btn-instalar');
+
+        // El navegador avisa que la app está lista para instalarse
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); // Evita el cartelito molesto de Chrome abajo
+            eventoInstalacion = e; // Guarda el evento
+            btnInstalar.style.display = 'block'; // Muestra nuestro botón amarillo
+        });
+
+        // Cuando el cliente hace clic en nuestro botón
+        btnInstalar.addEventListener('click', async () => {
+            if (!eventoInstalacion) return;
+            eventoInstalacion.prompt(); // Despliega el cartel oficial de instalación
+            const { outcome } = await eventoInstalacion.userChoice;
+            
+            // Una vez que elija (instalar o cancelar), ocultamos el botón
+            eventoInstalacion = null;
+            btnInstalar.style.display = 'none';
+        });
+
+        // Si detecta que ya la tiene instalada, el botón ni aparece
+        window.addEventListener('appinstalled', () => {
+            btnInstalar.style.display = 'none';
+        });
+    </script>
 </body>
 </html>
