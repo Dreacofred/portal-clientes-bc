@@ -313,14 +313,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     return; 
                 }
 
-                btnIniciar.disabled = true; btnIniciar.textContent = "SUBIENDO FOTO...";
+               // === INICIO DE COMPRESIÓN ===
+                btnIniciar.disabled = true; 
+                btnIniciar.textContent = "COMPRIMIENDO FOTO...";
 
-                const extension = archivoImagenCapturado.name.split('.').pop() || 'jpg';
                 const sucursalPrefix = nombresSucursales[ID_SUCURSAL_ACTUAL].substring(0, 3).toUpperCase();
-                const nombreArchivoUnique = `${sucursalPrefix}_Orden${orden.id}_${Date.now()}_remito.${extension}`;
+                const nombreArchivoUnique = `${sucursalPrefix}_Orden${orden.id}_${Date.now()}_remito.jpg`;
+                
+                let archivoParaSubir = archivoImagenCapturado;
+                try {
+                    // Achicamos la foto antes de subirla
+                    archivoParaSubir = await comprimirImagen(archivoImagenCapturado);
+                } catch (e) {
+                    console.log("Error al comprimir, subiendo original", e);
+                }
 
+                btnIniciar.textContent = "SUBIENDO A LA NUBE...";
                 const { data: uploadData, error: errUpload } = await supabaseCliente.storage
-                    .from('remitos').upload(nombreArchivoUnique, archivoImagenCapturado);
+                    .from('remitos').upload(nombreArchivoUnique, archivoParaSubir);
+                // === FIN DE COMPRESIÓN ===
 
                 if (errUpload) {
                     alert("Error al subir la foto a la nube. Verifique conexión.");
@@ -390,3 +401,48 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarOrdenesPendientes();
     setInterval(cargarOrdenesPendientes, 30000); 
 });
+// =========================================================
+// NUEVO: FUNCIÓN PARA COMPRIMIR IMÁGENES (Reducir peso de fotos)
+// =========================================================
+async function comprimirImagen(file, maxWidth = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height *= maxWidth / width));
+                    width = maxWidth;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        reject(new Error('Fallo al comprimir la imagen'));
+                        return;
+                    }
+                    const compressedFile = new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(compressedFile);
+                }, 'image/jpeg', quality); 
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
