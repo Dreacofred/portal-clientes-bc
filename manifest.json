@@ -2,7 +2,7 @@
   "name": "Portal de Clientes Pro - BC Combustibles",
   "short_name": "BC Clientes",
   "description": "Portal oficial para la gestión y emisión de órdenes de carga de BC Combustibles.",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#C8102E",
