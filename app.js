@@ -271,7 +271,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         let gasoilLitros = 0;
         let esTanqueLlenoGasoil = false;
         
-        // Traductor por si la base de datos devuelve texto en vez de objeto
         let detalles = orden.detalle_combustibles;
         if (typeof detalles === 'string') {
             try { detalles = JSON.parse(detalles); } catch(e) { detalles = null; }
@@ -430,9 +429,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
         }
 
-        // ==========================================
-        // VALIDACIÓN ESTRICTA DEL CUIT (11 DÍGITOS)
-        // ==========================================
         let campoCuitVal = null;
         let campoRsVal = null;
 
@@ -444,7 +440,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (txtCuit.length !== 11 || isNaN(txtCuit)) {
                     alert("⚠️ Error: El CUIT a facturar debe tener exactamente 11 números, sin guiones ni puntos.");
                     document.getElementById("factura_cuit").focus();
-                    return; // Frenamos el envío si está mal
+                    return; 
                 }
                 campoCuitVal = parseInt(txtCuit); 
                 campoRsVal = txtRs.toUpperCase(); 
@@ -508,3 +504,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 });
+
+// ==========================================
+// REGISTRO Y ACTUALIZACIÓN SILENCIOSA PWA
+// ==========================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(registro => {
+                console.log('PWA: Service Worker registrado.');
+
+                // Escucha si hay una nueva versión del Service Worker instalándose
+                registro.addEventListener('updatefound', () => {
+                    const nuevoSW = registro.installing;
+                    if (nuevoSW) {
+                        nuevoSW.addEventListener('statechange', () => {
+                            // Cuando la nueva versión termina de instalarse (installed)
+                            if (nuevoSW.state === 'installed') {
+                                // Si ya había uno activo antes, significa que es una actualización
+                                if (navigator.serviceWorker.controller) {
+                                    console.log('PWA: Nueva versión detectada y lista. Actualizando pestaña...');
+                                    
+                                    // Forzamos al nuevo SW a tomar el control y refrescamos la página
+                                    nuevoSW.postMessage({ type: 'SKIP_WAITING' });
+                                    window.location.reload(); 
+                                }
+                            }
+                        });
+                    }
+                });
+            })
+            .catch(error => console.log('Error al registrar PWA:', error));
+            
+        // Refrescar la página automáticamente si el Service Worker cambia de control (medida de seguridad)
+        let recargando;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (recargando) return;
+            window.location.reload();
+            recargando = true;
+        });
+    });
+}
