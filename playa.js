@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function cargarOrdenesPendientes() {
         const { data, error } = await supabaseCliente
             .from('ordenes_carga')
-            .select('*, clientes(nombre)') // CORRECCIÓN 1 APLICADA AQUÍ
+            .select('*, clientes(nombre)') 
             .eq('estado', 'PENDIENTE')
             .eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL)
             .order('fecha_creacion', { ascending: true });
@@ -176,7 +176,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>`;
             }
 
-            // CORRECCIÓN 2 APLICADA AQUÍ: Leemos directo de "orden", no de "orden.clientes"
             let htmlFacturacion = "";
             if (orden.factura_cuit && orden.factura_razon_social) {
                 htmlFacturacion = `
@@ -192,6 +191,27 @@ document.addEventListener("DOMContentLoaded", () => {
             if (orden.tanque_lleno === true) {
                 htmlLitros = `<div class="txt-litros" style="color: #0277bd; font-size: 1.1em; padding: 4px 8px; background: #e1f5fe; border-radius: 4px;">TANQUE LLENO</div>`;
             }
+
+            // ==========================================
+            // NUEVO: ALERTAS VISUALES EN LA TARJETA (ANTES DE ABRIR)
+            // ==========================================
+            let alertasTarjeta = "";
+            
+            // 1. ¿Tiene más de 1 combustible? (Cartel Naranja)
+            if (orden.detalle_combustibles && typeof orden.detalle_combustibles === 'object') {
+                if (Object.keys(orden.detalle_combustibles).length > 1) {
+                    alertasTarjeta += `<span style="background-color: #ff9800; color: #000; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; letter-spacing: 0.5px; vertical-align: middle;">MÚLTIPLE</span>`;
+                }
+            }
+            
+            // 2. ¿Tiene artículos extra? (Cartel Violeta)
+            if (orden.articulos_extra && orden.articulos_extra.trim() !== "") {
+                alertasTarjeta += `<span style="background-color: #9c27b0; color: #fff; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; letter-spacing: 0.5px; vertical-align: middle;">+ EXTRAS</span>`;
+            }
+
+            // Envolvemos todo para que quede alineado perfecto al lado de los litros
+            htmlLitros = `<div style="display: flex; align-items: center;">${htmlLitros}${alertasTarjeta}</div>`;
+            // ==========================================
 
             tarjeta.innerHTML = `
                 <div class="tarjeta-bloque-superior">
@@ -244,16 +264,50 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detalle-empresa").textContent = nombreEmpresa;
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         
+        // ==========================================
+        // MAGIA VISUAL: DESGLOSE DE PRODUCTOS PARA EL PLAYERO
+        // ==========================================
         const elLitrosDetalle = document.getElementById("detalle-litros");
-        if (orden.tanque_lleno === true) {
-            elLitrosDetalle.textContent = "TANQUE LLENO";
-            elLitrosDetalle.style.color = "#0277bd";
-            elLitrosDetalle.style.fontSize = "1.4em";
+        
+        // Verificamos si hay una "bolsita" con detalles de combustibles
+        if (orden.detalle_combustibles && typeof orden.detalle_combustibles === 'object') {
+            let htmlDesglose = `<div style="text-align: left; padding: 10px; background: #2c2c2c; border-radius: 8px; margin-top: 10px; border: 1px solid #444;">`;
+            htmlDesglose += `<div style="font-size: 0.8em; color: #ff9800; margin-bottom: 8px; font-weight: bold;">RECETA DE CARGA:</div>`;
+            
+            // Recorremos los combustibles pedidos
+            for (const [producto, litros] of Object.entries(orden.detalle_combustibles)) {
+                let textoLitros = litros === "Tanque Lleno" ? `<span style="color: #03a9f4; font-weight: bold;">LLENO</span>` : `<span style="color: white; font-weight: bold;">${litros} L</span>`;
+                htmlDesglose += `<div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #555;">
+                                    <span style="color: #ccc;">⛽ ${producto}</span>
+                                    ${textoLitros}
+                                 </div>`;
+            }
+            
+            // Si además pidió aceites o filtros, los agregamos abajo
+            if (orden.articulos_extra && orden.articulos_extra.trim() !== "") {
+                htmlDesglose += `<div style="margin-top: 8px; color: #ffeb3b; font-size: 0.9em; padding-top: 5px; border-top: 1px solid #555;">
+                                    📦 <b>EXTRAS:</b> ${orden.articulos_extra}
+                                 </div>`;
+            }
+            
+            htmlDesglose += `</div>`;
+            
+            // Insertamos el HTML armado en lugar del número suelto
+            elLitrosDetalle.innerHTML = htmlDesglose;
+            
         } else {
-            elLitrosDetalle.textContent = (orden.litros_pedidos || 0) + " L";
-            elLitrosDetalle.style.color = ""; 
-            elLitrosDetalle.style.fontSize = "";
+            // Si es un pedido viejo o sin formato especial, mostramos el formato original
+            if (orden.tanque_lleno === true) {
+                elLitrosDetalle.textContent = "TANQUE LLENO";
+                elLitrosDetalle.style.color = "#0277bd";
+                elLitrosDetalle.style.fontSize = "1.4em";
+            } else {
+                elLitrosDetalle.textContent = (orden.litros_pedidos || 0) + " L";
+                elLitrosDetalle.style.color = ""; 
+                elLitrosDetalle.style.fontSize = "";
+            }
         }
+        // ==========================================
 
         const cajaEfectivo = document.getElementById("caja-efectivo");
         const inputEfectivoEntregado = document.getElementById("input-efectivo-entregado");
