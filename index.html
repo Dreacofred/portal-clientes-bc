@@ -76,7 +76,7 @@
 
                 <div class="fila-form">
                     <div class="grupo-input">
-                        <label>Litros</label>
+                        <label>Litros (Gasoil G2 por defecto)</label>
                         <input type="number" id="litros" placeholder="Ej: 500">
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; margin-top: 5px; color: #0277bd;">
                             <input type="checkbox" id="tanque_lleno" style="width: 15px; height: 15px;"> 
@@ -87,7 +87,44 @@
                         <label>Entrega Efectivo ($)</label>
                         <input type="number" id="efectivo" placeholder="Ej: 20000">
                     </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #C8102E; font-weight: bold; background: #fff3f3; padding: 10px; border-radius: 8px; border: 1px dashed #C8102E;">
+                        <input type="checkbox" id="chk_extras" style="width: 18px; height: 18px;">
+                        [+] Agregar otro combustible o artículos extra
+                    </label>
+                </div>
+
+               <div id="caja_extras" style="display: none; background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;">
+                    <p style="margin-top: 0; font-size: 0.85em; color: #555;"><i>El pedido principal se registra como <b>Gas Oil 500 G2</b>. Llená esto solo si el camión lleva otra cosa.</i></p>
                     
+                    <div id="contenedor-combustibles-extra">
+                        <div class="fila-form fila-extra" style="margin-bottom: 10px;">
+                            <div class="grupo-input">
+                                <label>Combustible Adicional</label>
+                                <select class="combustible_extra_select">
+                                    <option value="">-- Ninguno --</option>
+                                    <option value="Euro Diesel G3">Euro Diesel G3</option>
+                                    <option value="Nafta Super G2">Nafta Super G2</option>
+                                    <option value="Nafta Premium G3">Nafta Premium G3</option>
+                                </select>
+                            </div>
+                            <div class="grupo-input">
+                                <label>Litros Adicionales</label>
+                                <input type="number" class="litros_extra_input" placeholder="Ej: 50">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="btn_agregar_mas" style="background: none; border: none; color: #0277bd; cursor: pointer; font-weight: bold; margin-bottom: 15px; padding: 0;">+ Añadir otro combustible</button>
+
+                    <div class="grupo-input" style="width: 100%; border-top: 1px solid #dee2e6; padding-top: 10px;">
+                        <label>Artículos Extra (Aceites, Urea, etc.)</label>
+                        <input type="text" id="articulos_extra" placeholder="Ej: 1 bidón de aceite 20W40">
+                    </div>
+                </div>
+                <div class="fila-form">
                     <div class="grupo-input" style="display: flex; flex-direction: column; width: 100%;">
                         <div id="caja-orden-normal" style="width: 100%;">
                             <label>Nº de Orden (Su Control)</label>
@@ -104,7 +141,6 @@
                                 <input type="text" id="nro_orden_efectivo_interna" placeholder="Ej: E-456">
                             </div>
                         </div>
-
                     </div>
                 </div>
 
@@ -165,28 +201,65 @@
         let eventoInstalacion;
         const btnInstalar = document.getElementById('btn-instalar');
 
-        // El navegador avisa que la app está lista para instalarse
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); // Evita el cartelito molesto de Chrome abajo
-            eventoInstalacion = e; // Guarda el evento
-            btnInstalar.style.display = 'block'; // Muestra nuestro botón amarillo
+            e.preventDefault();
+            eventoInstalacion = e;
+            btnInstalar.style.display = 'block'; 
         });
 
-        // Cuando el cliente hace clic en nuestro botón
         btnInstalar.addEventListener('click', async () => {
             if (!eventoInstalacion) return;
-            eventoInstalacion.prompt(); // Despliega el cartel oficial de instalación
+            eventoInstalacion.prompt();
             const { outcome } = await eventoInstalacion.userChoice;
-            
-            // Una vez que elija (instalar o cancelar), ocultamos el botón
             eventoInstalacion = null;
             btnInstalar.style.display = 'none';
         });
 
-        // Si detecta que ya la tiene instalada, el botón ni aparece
         window.addEventListener('appinstalled', () => {
             btnInstalar.style.display = 'none';
         });
+
+        // 3. Lógica para mostrar/ocultar la caja de combustibles extra
+        const chkExtras = document.getElementById('chk_extras');
+        const cajaExtras = document.getElementById('caja_extras');
+        
+        if(chkExtras && cajaExtras) {
+            chkExtras.addEventListener('change', function() {
+                cajaExtras.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+
+        // 4. Lógica para agregar más filas de combustibles
+        const btnAgregarMas = document.getElementById("btn_agregar_mas");
+        const contenedorCombustibles = document.getElementById("contenedor-combustibles-extra");
+        
+        if(btnAgregarMas && contenedorCombustibles) {
+            btnAgregarMas.addEventListener("click", () => {
+                const nuevaFila = document.createElement("div");
+                nuevaFila.className = "fila-form fila-extra";
+                nuevaFila.style.marginBottom = "10px";
+                nuevaFila.innerHTML = `
+                    <div class="grupo-input">
+                        <select class="combustible_extra_select">
+                            <option value="">-- Ninguno --</option>
+                            <option value="Euro Diesel G3">Euro Diesel G3</option>
+                            <option value="Nafta Super G2">Nafta Super G2</option>
+                            <option value="Nafta Premium G3">Nafta Premium G3</option>
+                        </select>
+                    </div>
+                    <div class="grupo-input" style="display: flex; gap: 10px;">
+                        <input type="number" class="litros_extra_input" placeholder="Ej: 50" style="flex: 1;">
+                        <button type="button" class="btn-eliminar-fila" style="background: #C8102E; color: white; border: none; border-radius: 8px; width: 40px; font-weight: bold; cursor: pointer;" title="Borrar fila">X</button>
+                    </div>
+                `;
+                contenedorCombustibles.appendChild(nuevaFila);
+                
+                // Darle vida al botón rojo de borrar
+                nuevaFila.querySelector('.btn-eliminar-fila').addEventListener('click', function() {
+                    nuevaFila.remove();
+                });
+            });
+        }
     </script>
 </body>
 </html>
