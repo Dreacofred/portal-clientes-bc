@@ -117,10 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 `;
             } else {
-                // NUEVA FORMA DE ENVIAR LA ORDEN AL BOTÓN DE EDITAR
-                // Codificamos la orden completa para que no se rompa el HTML
                 const ordenEncoded = encodeURIComponent(JSON.stringify(orden)).replace(/'/g, "%27");
-                
                 accionesHtml = `
                     <div class="celda-acciones">
                         <button class="btn-accion edit" onclick="prepararEdicion('${ordenEncoded}')">✏️</button>
@@ -166,10 +163,26 @@ document.addEventListener("DOMContentLoaded", async () => {
                 textoLitros = `${orden.litros_pedidos || 0} L`;
             }
 
-            // Si hay un detalle JSON guardado, le sumamos un pequeño aviso visual para el cliente
-            if (orden.detalle_combustibles && Object.keys(orden.detalle_combustibles).length > 1) {
-                textoLitros += `<br><span style="font-size:0.75em; color:#C8102E;">(Carga Múltiple)</span>`;
+            // ==========================================
+            // MAGIA DE CARTELITOS VISUALES EN LA TABLA
+            // ==========================================
+            let detallesObj = orden.detalle_combustibles;
+            if (typeof detallesObj === 'string') {
+                try { detallesObj = JSON.parse(detallesObj); } catch(e) { detallesObj = null; }
             }
+
+            let alertasTabla = "";
+            if (detallesObj && typeof detallesObj === 'object' && Object.keys(detallesObj).length > 1) {
+                alertasTabla += `<span style="display:inline-block; margin-top:4px; font-size:0.7em; color:#d84315; font-weight:bold; background:#fbe9e7; padding:2px 6px; border-radius:4px; border:1px solid #ffccbc;">MÚLTIPLE</span> `;
+            }
+            if (orden.articulos_extra && orden.articulos_extra.trim() !== "") {
+                alertasTabla += `<span style="display:inline-block; margin-top:4px; font-size:0.7em; color:#6a1b9a; font-weight:bold; background:#f3e5f5; padding:2px 6px; border-radius:4px; border:1px solid #e1bee7;">+ EXTRAS</span>`;
+            }
+            
+            if (alertasTabla !== "") {
+                textoLitros += `<br>${alertasTabla}`;
+            }
+            // ==========================================
 
             fila.innerHTML = `
                 <td style="font-size: 0.9em;"><strong>${numeroMostrar}</strong></td>
@@ -209,9 +222,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (error) alert("No se pudo eliminar."); else cargarOrdenes();
     };
 
-    // =======================================================
-    // NUEVA SUPER FUNCIÓN DE EDICIÓN: RECONSTRUYE LA BOLSA
-    // =======================================================
     window.prepararEdicion = (ordenEncoded) => {
         const orden = JSON.parse(decodeURIComponent(ordenEncoded));
 
@@ -233,7 +243,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("factura_razon_social").value = (orden.factura_razon_social && orden.factura_razon_social !== 'null') ? orden.factura_razon_social : "";
         }
 
-        // Recuperamos los elementos del DOM de los extras
         const chk = document.getElementById("tanque_lleno");
         const inpLts = document.getElementById("litros");
         const chkExtras = document.getElementById("chk_extras");
@@ -241,7 +250,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const contenedorCombustibles = document.getElementById("contenedor-combustibles-extra");
         const inputArticulosExtra = document.getElementById("articulos_extra");
 
-        // Primero limpiamos la caja de combustibles extra (la devolvemos a estado de fábrica con 1 sola fila vacía)
         contenedorCombustibles.innerHTML = `
             <div class="fila-form fila-extra" style="margin-bottom: 10px;">
                 <div class="grupo-input">
@@ -262,39 +270,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         let gasoilLitros = 0;
         let esTanqueLlenoGasoil = false;
-        const detalles = orden.detalle_combustibles;
+        
+        // Traductor por si la base de datos devuelve texto en vez de objeto
+        let detalles = orden.detalle_combustibles;
+        if (typeof detalles === 'string') {
+            try { detalles = JSON.parse(detalles); } catch(e) { detalles = null; }
+        }
+        
         const articulosExtra = orden.articulos_extra;
 
-        // Si la orden TIENE el desglose nuevo guardado
         if (detalles && typeof detalles === 'object' && Object.keys(detalles).length > 0) {
             
-            // 1. Extraemos el Gasoil Principal
             if (detalles["Gas Oil 500 G2"] === "Tanque Lleno") {
                 esTanqueLlenoGasoil = true;
             } else if (detalles["Gas Oil 500 G2"]) {
                 gasoilLitros = parseFloat(detalles["Gas Oil 500 G2"]) || 0;
             }
 
-            // 2. Extraemos los combustibles adicionales
             const otrosCombustibles = Object.entries(detalles).filter(([k, v]) => k !== "Gas Oil 500 G2");
 
-            // Si hay combustibles adicionales O artículos extra
             if (otrosCombustibles.length > 0 || (articulosExtra && articulosExtra.trim() !== "")) {
                 chkExtras.checked = true;
-                cajaExtras.style.display = "block"; // Desplegamos la caja
+                cajaExtras.style.display = "block"; 
                 inputArticulosExtra.value = articulosExtra || "";
 
-                // Rellenamos las filas de combustibles adicionales
                 otrosCombustibles.forEach((item, index) => {
                     const combustible = item[0];
                     const cantLitros = item[1];
 
                     if (index === 0) {
-                        // Rellenamos la primera fila que ya está visible
                         document.querySelector('.combustible_extra_select').value = combustible;
                         document.querySelector('.litros_extra_input').value = cantLitros;
                     } else {
-                        // Simulamos un clic en el botón "+ Añadir" para crear la fila nueva y luego la rellenamos
                         const btnAgregarMas = document.getElementById("btn_agregar_mas");
                         if(btnAgregarMas) btnAgregarMas.click();
 
@@ -305,14 +312,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                     }
                 });
             } else {
-                // Solo pidió Gasoil normal sin extras
                 chkExtras.checked = false;
                 cajaExtras.style.display = "none";
                 inputArticulosExtra.value = "";
             }
 
         } else {
-            // Es una orden VIEJA que no tiene la "bolsita" JSON guardada
             gasoilLitros = orden.litros_pedidos || 0;
             esTanqueLlenoGasoil = orden.tanque_lleno === true;
             chkExtras.checked = false;
@@ -320,7 +325,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             inputArticulosExtra.value = "";
         }
 
-        // Finalmente, llenamos la caja de los Litros Principales (Gasoil)
         if (esTanqueLlenoGasoil) {
             chk.checked = true;
             inpLts.value = "";
@@ -351,7 +355,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const chofer = document.getElementById("chofer").value.toUpperCase();
         const efectivo = parseInt(document.getElementById("efectivo").value || "0");
         
-        // 1. Validamos litros o tanque lleno
         const isTanqueLleno = document.getElementById("tanque_lleno").checked;
         const litrosInput = document.getElementById("litros").value;
         let litrosFinal = null;
@@ -376,23 +379,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        // ==========================================
-        // MAGIA: EMPAQUETADO DE MÚLTIPLES COMBUSTIBLES Y EXTRAS
-        // ==========================================
         const chkExtras = document.getElementById("chk_extras").checked;
         let artExtra = document.getElementById("articulos_extra").value.trim();
 
         let paqueteCombustibles = {};
         let sumaTotalLitros = litrosFinal;
 
-        // Siempre agregamos el gasoil base al paquete
         if (isTanqueLleno) {
             paqueteCombustibles["Gas Oil 500 G2"] = "Tanque Lleno";
         } else {
             paqueteCombustibles["Gas Oil 500 G2"] = litrosFinal;
         }
 
-        // Si tildó extras, recorremos TODAS las filas que haya creado
         if (chkExtras) {
             const selectsExtras = document.querySelectorAll('.combustible_extra_select');
             const inputsExtras = document.querySelectorAll('.litros_extra_input');
@@ -402,22 +400,19 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const lts = parseFloat(inputsExtras[i].value) || 0;
                 
                 if (comb && lts > 0) {
-                    // Si el cliente elige dos veces el mismo producto por error, los sumamos solos
                     if (paqueteCombustibles[comb]) {
                         paqueteCombustibles[comb] += lts;
                     } else {
                         paqueteCombustibles[comb] = lts;
                     }
-                    sumaTotalLitros += lts; // Sumamos para la tabla principal
+                    sumaTotalLitros += lts; 
                 }
             }
         }
         
-        // Si no tildó la caja o la dejó vacía, limpiamos los artículos por seguridad
         if (!chkExtras || artExtra === "") {
             artExtra = null;
         }
-        // ==========================================
 
         let nroOrdenCliente = "";
         let nroOrdenLitros = null;
@@ -435,6 +430,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             nroOrdenCliente = document.getElementById("nro_orden_cliente").value.trim();
         }
 
+        // ==========================================
+        // VALIDACIÓN ESTRICTA DEL CUIT (11 DÍGITOS)
+        // ==========================================
         let campoCuitVal = null;
         let campoRsVal = null;
 
@@ -442,8 +440,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             const txtCuit = document.getElementById("factura_cuit").value.trim();
             const txtRs = document.getElementById("factura_razon_social").value.trim();
 
-            if (txtCuit) campoCuitVal = parseInt(txtCuit); 
-            if (txtRs) campoRsVal = txtRs.toUpperCase(); 
+            if (txtCuit !== "" || txtRs !== "") {
+                if (txtCuit.length !== 11 || isNaN(txtCuit)) {
+                    alert("⚠️ Error: El CUIT a facturar debe tener exactamente 11 números, sin guiones ni puntos.");
+                    document.getElementById("factura_cuit").focus();
+                    return; // Frenamos el envío si está mal
+                }
+                campoCuitVal = parseInt(txtCuit); 
+                campoRsVal = txtRs.toUpperCase(); 
+            }
         }
 
         const datos = {
@@ -451,7 +456,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             sucursal_carga_id: parseInt(sucursal), 
             patente: patente || null, 
             chofer,
-            litros_pedidos: sumaTotalLitros, // Guardamos la suma total para que no se rompa la vista
+            litros_pedidos: sumaTotalLitros, 
             tanque_lleno: isTanqueLleno, 
             efectivo_pedido: efectivo,
             nro_orden_cliente: nroOrdenCliente,
@@ -460,7 +465,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             factura_cuit: campoCuitVal,              
             factura_razon_social: campoRsVal,        
             estado: 'PENDIENTE',
-            // Inyectamos las dos columnas nuevas
             detalle_combustibles: paqueteCombustibles,
             articulos_extra: artExtra
         };
@@ -487,7 +491,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("litros").style.backgroundColor = "";
             document.querySelector('.input-bloqueado').value = clienteDatos.nombre; 
             
-            // Reseteamos el estado visual de la caja extra
             document.getElementById("caja_extras").style.display = "none";
             document.getElementById("chk_extras").checked = false;
             
