@@ -4,6 +4,7 @@ const supabaseCliente = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let idClienteActual = null;
 
+// AGREGAMOS LAS DOS COLUMNAS NUEVAS A LA LISTA
 const columnasDisponibles = [
     { id: 'id', label: 'Nº Orden BC', checked: true },
     { id: 'nro_orden_cliente', label: 'Nº Orden Cliente', checked: true },
@@ -14,7 +15,9 @@ const columnasDisponibles = [
     { id: 'sucursal', label: 'Sucursal', checked: true },
     { id: 'patente', label: 'Patente / Dominio', checked: true },
     { id: 'chofer', label: 'Chofer', checked: true },
-    { id: 'litros_pedidos', label: 'Litros Pedidos', checked: true },
+    { id: 'litros_pedidos', label: 'Total Litros Pedidos', checked: true },
+    { id: 'detalle_combustibles', label: 'Receta de Combustibles', checked: true }, // NUEVA
+    { id: 'articulos_extra', label: 'Artículos Extra', checked: true }, // NUEVA
     { id: 'tanque_lleno', label: '¿Tanque Lleno?', checked: false },
     { id: 'litros_reales', label: 'Litros Cargados (Auditado)', checked: true },
     { id: 'efectivo_pedido', label: 'Efectivo Pedido ($)', checked: true },
@@ -87,7 +90,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const fechaDesde = document.getElementById('fecha-desde').value;
         const fechaHasta = document.getElementById('fecha-hasta').value;
 
-        // --- NUEVO: CAPTURA DE FILTROS DE ESTADO ---
         const estadosSeleccionados = [];
         if (document.getElementById('est_pendiente').checked) estadosSeleccionados.push('PENDIENTE');
         if (document.getElementById('est_despachado').checked) estadosSeleccionados.push('DESPACHADO');
@@ -104,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             .from('ordenes_carga')
             .select('*')
             .eq('cliente_id', idClienteActual)
-            .in('estado', estadosSeleccionados); // Filtramos dinámicamente por los estados elegidos
+            .in('estado', estadosSeleccionados); 
 
         if (fechaDesde) {
             consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00`);
@@ -123,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (ordenes.length === 0) {
-            alert("📭 No se encontraron órdenes con los filtros (fechas/estados) seleccionados.");
+            alert("📭 No se encontraron órdenes con los filtros seleccionados.");
             btn.textContent = '⬇️ Descargar Excel';
             btn.disabled = false;
             return;
@@ -155,6 +157,39 @@ document.addEventListener("DOMContentLoaded", async () => {
                 else if (col.id === 'litros_pedidos') {
                      valor = valor ? parseFloat(valor) : 0;
                 }
+                // ===============================================
+                // TRADUCTOR DE LA BOLSA JSON PARA EL EXCEL
+                // ===============================================
+                else if (col.id === 'detalle_combustibles') {
+                    let detalles = orden.detalle_combustibles;
+                    
+                    if (typeof detalles === 'string') {
+                        try { detalles = JSON.parse(detalles); } catch(e) { detalles = null; }
+                    }
+                    
+                    if (detalles && typeof detalles === 'object' && Object.keys(detalles).length > 0) {
+                        let partes = [];
+                        for (const [producto, lts] of Object.entries(detalles)) {
+                            let txtLts = lts === "Tanque Lleno" ? "Lleno" : lts + "L";
+                            partes.push(`${producto}: ${txtLts}`);
+                        }
+                        valor = partes.join(" | ");
+                    } else {
+                        // Si es una orden vieja sin JSON, completamos con el gasoil por defecto
+                        let ltsViejos = orden.litros_pedidos || 0;
+                        if (orden.tanque_lleno) {
+                            valor = "Gas Oil 500 G2: Lleno";
+                        } else if (ltsViejos > 0) {
+                            valor = `Gas Oil 500 G2: ${ltsViejos}L`;
+                        } else {
+                            valor = '-';
+                        }
+                    }
+                }
+                else if (col.id === 'articulos_extra') {
+                    valor = valor ? valor : '-';
+                }
+                // ===============================================
                 else if (col.id === 'litros_reales') {
                     if (orden.estado !== 'AUDITADO') {
                         valor = '-';
@@ -189,7 +224,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const libro = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(libro, hoja, "Historial_Cargas");
         
-        const anchos = columnasSeleccionadas.map(col => ({ wch: Math.max(col.label.length + 5, 15) }));
+        const anchos = columnasSeleccionadas.map(col => {
+            // Le damos un poco más de ancho a la columna de la receta
+            let extraAncho = col.id === 'detalle_combustibles' ? 25 : 5;
+            return { wch: Math.max(col.label.length + extraAncho, 15) }
+        });
         hoja['!cols'] = anchos;
 
         XLSX.writeFile(libro, `BC_Reporte_Cargas_${new Date().toISOString().slice(0,10)}.xlsx`);
