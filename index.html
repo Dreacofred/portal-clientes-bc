@@ -4,9 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal de Clientes Pro - BC Combustibles</title>
+    
+    <!-- ========================================== -->
+    <!-- NUEVO: ETIQUETAS ANTI-CACHÉ (FUERZAN ACTUALIZACIÓN) -->
+    <!-- ========================================== -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C8102E">
-    <link rel="stylesheet" href="style.css">
+    
+    <!-- NUEVO: Agregamos ?v=2.0 para que el celular sepa que hay cambios -->
+    <link rel="stylesheet" href="style.css?v=2.0">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -186,7 +196,8 @@
     </main>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js"></script>
+    <!-- NUEVO: Agregamos ?v=2.0 para que descargue el JS nuevo -->
+    <script src="app.js?v=2.0"></script>
     <script>
         // 1. Registro del motor de la PWA
         if ('serviceWorker' in navigator) {
