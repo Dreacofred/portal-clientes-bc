@@ -108,11 +108,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             .eq('cliente_id', idClienteActual)
             .in('estado', estadosSeleccionados); 
 
+        // Le agregamos el -03:00 para forzar el huso horario de Argentina
         if (fechaDesde) {
-            consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00`);
+            consulta = consulta.gte('fecha_creacion', `${fechaDesde}T00:00:00-03:00`);
         }
         if (fechaHasta) {
-            consulta = consulta.lte('fecha_creacion', `${fechaHasta}T23:59:59`);
+            consulta = consulta.lte('fecha_creacion', `${fechaHasta}T23:59:59-03:00`);
         }
 
         const { data: ordenes, error } = await consulta.order('id', { ascending: false });
