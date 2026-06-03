@@ -61,6 +61,10 @@
                 <div style="font-size: 13px; color: white;">👤 <strong id="nombre-operador">---</strong></div>
                 <div style="opacity: 0.8; font-size: 11px;">📍 <strong id="nombre-sucursal">---</strong></div>
             </div>
+            <!-- BOTÓN DE INSTALACIÓN AGREGADO ACÁ -->
+            <button id="btn-instalar" style="display: none; background-color: #ffc107; color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                📲 Instalar App
+            </button>
             <button id="btn-cerrar-sesion" class="btn-logout" style="margin: 0;">SALIR</button>
         </div>
     </header>
@@ -131,5 +135,32 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="playa.js"></script>
+
+    <!-- SCRIPT DE INSTALACIÓN AGREGADO ACÁ -->
+    <script>
+        // Lógica del Botón de Instalación Personalizado
+        let eventoInstalacionPlaya;
+        const btnInstalarPlaya = document.getElementById('btn-instalar');
+
+        if (btnInstalarPlaya) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                eventoInstalacionPlaya = e;
+                btnInstalarPlaya.style.display = 'block'; 
+            });
+
+            btnInstalarPlaya.addEventListener('click', async () => {
+                if (!eventoInstalacionPlaya) return;
+                eventoInstalacionPlaya.prompt();
+                const { outcome } = await eventoInstalacionPlaya.userChoice;
+                eventoInstalacionPlaya = null;
+                btnInstalarPlaya.style.display = 'none';
+            });
+
+            window.addEventListener('appinstalled', () => {
+                btnInstalarPlaya.style.display = 'none';
+            });
+        }
+    </script>
 </body>
 </html>
