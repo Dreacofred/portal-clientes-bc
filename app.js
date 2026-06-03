@@ -14,11 +14,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     const { data: { user } } = await supabaseCliente.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
 
+    // MODIFICACIÓN 1: Le pedimos a Supabase que también nos traiga la columna "habilitado"
     const { data: clienteDatos, error: errorCliente } = await supabaseCliente
-        .from('clientes').select('id, nombre, limite_efectivo, formato_especial, elige_cuit_facturar')
+        .from('clientes').select('id, nombre, limite_efectivo, formato_especial, elige_cuit_facturar, habilitado')
         .eq('auth_user_id', user.id).single();
 
     if (errorCliente || !clienteDatos) { alert("Usuario no vinculado."); return; }
+
+    // ==========================================
+    // MODIFICACIÓN 2: LA TRAMPA DE SEGURIDAD
+    // ==========================================
+    // Si la base de datos dice explícitamente que está inhabilitado (false), le bloqueamos la carga
+    if (clienteDatos.habilitado === false) {
+        const divFormulario = document.getElementById("contenedor-formulario");
+        const cartelInhabilitado = document.getElementById("mensaje-inhabilitado");
+        
+        if (divFormulario && cartelInhabilitado) {
+            divFormulario.style.display = "none"; // Desaparecemos el formulario entero
+            cartelInhabilitado.style.display = "block"; // Prendemos el cartel rojo gigante
+        }
+        
+        // Ponemos el nombre igual arriba de todo por cortesía, pero no lo dejamos seguir ejecutando el resto de la app
+        document.querySelector('.nombre-empresa').textContent = clienteDatos.nombre;
+        
+        // Inicializamos el botón de salir para que pueda irse
+        const btnSalir = document.querySelector('.icono-salir');
+        if (btnSalir) {
+            btnSalir.addEventListener('click', async () => {
+                await supabaseCliente.auth.signOut();
+                window.location.href = "login.html";
+            });
+        }
+        
+        // Cortamos la ejecución de la app acá mismo. No carga sugerencias, ni configura botones, ni nada.
+        return; 
+    }
+    // ==========================================
 
     idClienteActual = clienteDatos.id;
     limiteEfectivoActual = parseInt(clienteDatos.limite_efectivo) || 0;
