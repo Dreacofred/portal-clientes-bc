@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Despacho de Combustible - BC</title>
+    
+    <!-- ETIQUETAS ANTI-CACHÉ (Vital para actualizaciones) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- ESTA LÍNEA ES LA QUE TE FALTABA PARA QUE EL BOTÓN APAREZCA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#C8102E">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -52,19 +61,24 @@
 <body>
 
     <header class="header-rojo">
-       <div class="header-izq" style="display: flex; align-items: center;">
+        <!-- Izquierda: Logo y Título -->
+        <div class="header-izq" style="display: flex; align-items: center;">
             <img src="https://bjhykcdhafoqpfkpngvw.supabase.co/storage/v1/object/public/remitos/Logo.jpeg" style="height: 45px; border-radius: 50%; margin-right: 10px; border: 2px solid white;">
             <h2 style="color:white; margin: 0; font-size: 16px; line-height: 1.1;">Despacho<br>Playa</h2>
         </div>
-        <div class="header-der" style="gap: 15px;">
+
+        <!-- Derecha: Datos y Botones (Asegurando que el botón esté acá) -->
+        <div class="header-der" style="display: flex; align-items: center; gap: 10px;">
             <div style="text-align: right; line-height: 1.3;">
                 <div style="font-size: 13px; color: white;">👤 <strong id="nombre-operador">---</strong></div>
                 <div style="opacity: 0.8; font-size: 11px;">📍 <strong id="nombre-sucursal">---</strong></div>
             </div>
-            <!-- BOTÓN DE INSTALACIÓN AGREGADO ACÁ -->
-            <button id="btn-instalar" style="display: none; background-color: #ffc107; color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                📲 Instalar App
+            
+            <!-- Botón de Instalación corregido -->
+            <button id="btn-instalar" style="display: none; background-color: #ffc107; color: #000; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 10px; text-transform: uppercase;">
+                📲 INSTALAR
             </button>
+            
             <button id="btn-cerrar-sesion" class="btn-logout" style="margin: 0;">SALIR</button>
         </div>
     </header>
