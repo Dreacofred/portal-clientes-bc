@@ -6,6 +6,10 @@ const NOMBRE_OPERADOR = localStorage.getItem('empleado_nombre') || "Operador";
 const ID_SUCURSAL_ACTUAL = localStorage.getItem('empleado_sucursal');
 const nombresSucursales = { 1: "RECONQUISTA", 2: "AVELLANEDA", 3: "FLORENCIA", 4: "RECREO" };
 
+// --- LÓGICA DE SUPER USUARIO (MODO GLOBAL) ---
+// Detecta si el que inició sesión sos vos o un administrador
+const esSuperUsuario = NOMBRE_OPERADOR.toUpperCase().includes("MUÑOZ DIEGO") || NOMBRE_OPERADOR.toUpperCase().includes("ADMIN");
+
 const inputFoto = document.getElementById('input-foto');
 const btnAbrirCamara = document.getElementById('btn-abrir-camara');
 const visualCamara = document.getElementById('caja-camara');
@@ -29,8 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const elNombre = document.getElementById('nombre-operador');
     const elSucursal = document.getElementById('nombre-sucursal');
+    
     if(elNombre) elNombre.textContent = NOMBRE_OPERADOR;
-    if(elSucursal) elSucursal.textContent = nombresSucursales[ID_SUCURSAL_ACTUAL] || "BC";
+    // Si sos vos, cambiamos el texto de la sucursal por la vista global
+    if(elSucursal) elSucursal.textContent = esSuperUsuario ? "🌐 VISTA GLOBAL" : (nombresSucursales[ID_SUCURSAL_ACTUAL] || "BC");
 
     const contenedorOrdenes = document.getElementById("lista-ordenes");
     const modal = document.getElementById("modal-detalle");
@@ -123,12 +129,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function cargarOrdenesPendientes() {
-        const { data, error } = await supabaseCliente
+        // Preparamos la consulta a la base de datos
+        let consulta = supabaseCliente
             .from('ordenes_carga')
             .select('*, clientes(nombre)') 
             .eq('estado', 'PENDIENTE')
-            .eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL)
             .order('fecha_creacion', { ascending: true });
+
+        // Si NO sos super usuario, le clavamos el filtro de la sucursal para que vea solo lo suyo
+        if (!esSuperUsuario) {
+            consulta = consulta.eq('sucursal_carga_id', ID_SUCURSAL_ACTUAL);
+        }
+
+        // Ejecutamos la consulta
+        const { data, error } = await consulta;
 
         if (error) {
             contenedorOrdenes.innerHTML = "Error al conectar con la base de datos.";
@@ -136,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (data.length === 0) {
-            contenedorOrdenes.innerHTML = "<p style='text-align:center; padding:20px; opacity:0.6;'>No hay camiones pendientes para esta sucursal.</p>";
+            contenedorOrdenes.innerHTML = "<p style='text-align:center; padding:20px; opacity:0.6;'>No hay camiones pendientes.</p>";
             return;
         }
 
@@ -193,30 +207,38 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             // ==========================================
-            // NUEVO: ALERTAS VISUALES EN LA TARJETA (ANTES DE ABRIR)
+            // ALERTAS VISUALES EN LA TARJETA
             // ==========================================
             let alertasTarjeta = "";
             
-            // 1. ¿Tiene más de 1 combustible? (Cartel Naranja)
             if (orden.detalle_combustibles && typeof orden.detalle_combustibles === 'object') {
                 if (Object.keys(orden.detalle_combustibles).length > 1) {
                     alertasTarjeta += `<span style="background-color: #ff9800; color: #000; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; letter-spacing: 0.5px; vertical-align: middle;">MÚLTIPLE</span>`;
                 }
             }
             
-            // 2. ¿Tiene artículos extra? (Cartel Violeta)
             if (orden.articulos_extra && orden.articulos_extra.trim() !== "") {
                 alertasTarjeta += `<span style="background-color: #9c27b0; color: #fff; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; letter-spacing: 0.5px; vertical-align: middle;">+ EXTRAS</span>`;
             }
 
-            // Envolvemos todo para que quede alineado perfecto al lado de los litros
             htmlLitros = `<div style="display: flex; align-items: center;">${htmlLitros}${alertasTarjeta}</div>`;
+            // ==========================================
+
+            // ==========================================
+            // ETIQUETA ROJA DE SUCURSAL PARA EL ADMIN
+            // ==========================================
+            let htmlSucursal = "";
+            if (esSuperUsuario) {
+                const nombreSuc = nombresSucursales[orden.sucursal_carga_id] || "SUCURSAL DESCONOCIDA";
+                htmlSucursal = `<div style="background-color: #C8102E; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">📍 ${nombreSuc}</div>`;
+            }
             // ==========================================
 
             tarjeta.innerHTML = `
                 <div class="tarjeta-bloque-superior">
                     ${htmlPatente}
                     <div class="info-orden">
+                        ${htmlSucursal}
                         <div class="chofer-txt">👤 ${nombreChofer}</div>
                         <div class="empresa-txt">(${nombreEmpresa})</div>
                     </div>
@@ -265,16 +287,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("detalle-chofer").textContent = orden.chofer;
         
         // ==========================================
-        // MAGIA VISUAL: DESGLOSE DE PRODUCTOS PARA EL PLAYERO
+        // DESGLOSE DE PRODUCTOS
         // ==========================================
         const elLitrosDetalle = document.getElementById("detalle-litros");
         
-        // Verificamos si hay una "bolsita" con detalles de combustibles
         if (orden.detalle_combustibles && typeof orden.detalle_combustibles === 'object') {
             let htmlDesglose = `<div style="text-align: left; padding: 10px; background: #2c2c2c; border-radius: 8px; margin-top: 10px; border: 1px solid #444;">`;
             htmlDesglose += `<div style="font-size: 0.8em; color: #ff9800; margin-bottom: 8px; font-weight: bold;">RECETA DE CARGA:</div>`;
             
-            // Recorremos los combustibles pedidos
             for (const [producto, litros] of Object.entries(orden.detalle_combustibles)) {
                 let textoLitros = litros === "Tanque Lleno" ? `<span style="color: #03a9f4; font-weight: bold;">LLENO</span>` : `<span style="color: white; font-weight: bold;">${litros} L</span>`;
                 htmlDesglose += `<div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #555;">
@@ -283,7 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                  </div>`;
             }
             
-            // Si además pidió aceites o filtros, los agregamos abajo
             if (orden.articulos_extra && orden.articulos_extra.trim() !== "") {
                 htmlDesglose += `<div style="margin-top: 8px; color: #ffeb3b; font-size: 0.9em; padding-top: 5px; border-top: 1px solid #555;">
                                     📦 <b>EXTRAS:</b> ${orden.articulos_extra}
@@ -291,12 +310,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             htmlDesglose += `</div>`;
-            
-            // Insertamos el HTML armado en lugar del número suelto
             elLitrosDetalle.innerHTML = htmlDesglose;
             
         } else {
-            // Si es un pedido viejo o sin formato especial, mostramos el formato original
             if (orden.tanque_lleno === true) {
                 elLitrosDetalle.textContent = "TANQUE LLENO";
                 elLitrosDetalle.style.color = "#0277bd";
@@ -376,7 +392,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 let archivoParaSubir = archivoImagenCapturado;
                 try {
-                    // Achicamos la foto antes de subirla
                     archivoParaSubir = await comprimirImagen(archivoImagenCapturado);
                 } catch (e) {
                     console.log("Error al comprimir, subiendo original", e);
@@ -456,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(cargarOrdenesPendientes, 30000); 
 });
 // =========================================================
-// NUEVO: FUNCIÓN PARA COMPRIMIR IMÁGENES (Reducir peso de fotos)
+// FUNCIÓN PARA COMPRIMIR IMÁGENES
 // =========================================================
 async function comprimirImagen(file, maxWidth = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
