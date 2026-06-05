@@ -387,40 +387,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         const isTanqueLleno = document.getElementById("tanque_lleno").checked;
         const litrosInput = document.getElementById("litros").value;
-        let litrosFinal = null;
-
-        if (!isTanqueLleno) {
-            if (!litrosInput || litrosInput <= 0) {
-                alert("⚠️ Por favor, ingresá la cantidad de litros de Gasoil o tildá 'Llenar Tanque'.");
-                return;
-            }
-            litrosFinal = parseFloat(litrosInput);
-        } else {
-            litrosFinal = 0; 
-        }
-
-        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer) {
-            alert("⚠️ Por favor, completá los campos obligatorios (Sucursal y Chofer).");
-            return;
-        }
-
-        if (efectivo > limiteEfectivoActual) {
-            alert(`Monto solicitado ($${efectivo}) supera el límite ($${limiteEfectivoActual}).`);
-            return;
-        }
-
         const chkExtras = document.getElementById("chk_extras").checked;
         let artExtra = document.getElementById("articulos_extra").value.trim();
 
+        let litrosGasoil = parseFloat(litrosInput) || 0;
         let paqueteCombustibles = {};
-        let sumaTotalLitros = litrosFinal;
+        let sumaTotalLitros = 0;
 
+        // 1. Armamos el Gasoil Principal
         if (isTanqueLleno) {
             paqueteCombustibles["Gas Oil 500 G2"] = "Tanque Lleno";
-        } else {
-            paqueteCombustibles["Gas Oil 500 G2"] = litrosFinal;
+        } else if (litrosGasoil > 0) {
+            paqueteCombustibles["Gas Oil 500 G2"] = litrosGasoil;
+            sumaTotalLitros += litrosGasoil;
         }
 
+        // 2. Sumamos los Combustibles Extras
         if (chkExtras) {
             const selectsExtras = document.querySelectorAll('.combustible_extra_select');
             const inputsExtras = document.querySelectorAll('.litros_extra_input');
@@ -439,7 +421,26 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
         }
-        
+
+        // 3. LA NUEVA BARRERA INTELIGENTE: 
+        // Si no tildó tanque lleno y no puso ni un solo litro de NADA, frena la orden
+        if (!isTanqueLleno && sumaTotalLitros <= 0) {
+            alert("⚠️ Por favor, ingresá la cantidad de litros de algún combustible o tildá 'Llenar Tanque'.");
+            return;
+        }
+
+        // 4. Validaciones obligatorias de sucursal y chofer
+        if (!sucursal || sucursal === "" || isNaN(parseInt(sucursal)) || !chofer) {
+            alert("⚠️ Por favor, completá los campos obligatorios (Sucursal y Chofer).");
+            return;
+        }
+
+        // 5. Validación del límite de efectivo
+        if (efectivo > limiteEfectivoActual) {
+            alert(`Monto solicitado ($${efectivo}) supera el límite ($${limiteEfectivoActual}).`);
+            return;
+        }
+
         if (!chkExtras || artExtra === "") {
             artExtra = null;
         }
